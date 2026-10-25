@@ -280,9 +280,11 @@ nft. Служба поднимается под тем же супервизор
 
 ## `ui`
 
-`{"entry": "ui/index.js", "css": ["ui/style.css"], "desktop": true}` — ES-модуль, который панель
-загружает `import()` и у которого зовёт `activate(host)`. `desktop: false` — плагин не грузится в
-десктопе (например, ему нужна сессия LuCI). Подробно — [host-api.md](host-api.md).
+`{"entry": "ui/index.js", "css": ["ui/style.css"], "desktop": true, "rail": false}` — ES-модуль, который
+панель загружает `import()` и у которого зовёт `activate(host)`. Интерфейс плагина живёт в его карточке
+во вкладке «Плагины» (слот `pluginSettings`). `desktop: false` — плагин не грузится в десктопе
+(например, ему нужна сессия LuCI). `rail: true` — редкое исключение: плагину разрешён свой раздел в
+полосе (слот `railSection`). Подробно — [host-api.md](host-api.md).
 
 ## `i18n`
 

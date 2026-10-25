@@ -16,10 +16,10 @@
 | Тёмный режим — по яркости фона LuCI, класс `.dark` на `<html>` | `ui/src/main.tsx:31-42, 146-149` | темы — переменные, а не свой режим |
 | `react → preact/compat` | `ui/vite.config.ts:107-110` | один preact на всех, иначе хуки ломаются |
 | Сборка — ES-модули, чанки по белому списку имён | `ui/vite.config.ts:113-170`, `ui/scripts/check-dist.mjs:18` | плагины грузятся мимо `check-dist` — это код вне сборки хоста |
-| Разделы — закрытое объединение `SectionId`; Rail — `ITEMS` и `extra` | `ui/src/lib/sections.ts:5`, `ui/src/components/Rail.tsx:29-37, 52-74` | слот `section` — обобщение `extra` |
-| Единственная точка расширения — `ExtraSection {id,label,icon,render(live)}`, её использует только десктоп | `ui/src/components/Console.tsx:50-55, 107, 212, 270`; `desktop/renderer/main.tsx:48` | основа слота `section` |
+| Разделы — закрытое объединение `SectionId`; Rail — `ITEMS` и `extra` | `ui/src/lib/sections.ts:5`, `ui/src/components/Rail.tsx:29-37, 52-74` | вкладка «Плагины» — новый встроенный раздел; плагины в Rail не попадают (исключение — `railSection`) |
+| Единственная точка расширения — `ExtraSection {id,label,icon,render(live)}`, её использует только десктоп | `ui/src/components/Console.tsx:50-55, 107, 212, 270`; `desktop/renderer/main.tsx:48` | уходит: WarpBox и ReCheck живут в карточках вкладки «Плагины» |
 | Переход между разделами — событие `splify:section` | `ui/src/components/Console.tsx:118-128` | `host.nav.open` |
-| Экраны VPN и настроек — закрытые объединения | `ui/src/components/sections/Vpn.tsx:24`, `Settings.tsx:28` | слоты `vpnScreen`, `settings` |
+| Экраны VPN и настроек — закрытые объединения | `ui/src/components/sections/Vpn.tsx:24`, `Settings.tsx:28` | плагины туда не встраиваются: их настройки — в карточке плагина |
 | Плитки «Доски» собраны руками, `WarpTile` читает `st.group.warp` | `ui/src/components/sections/Home.tsx:1124-1146, 1311` | слот `boardTile` |
 | Блок «Куда»: часть WARP вшита, `WarpPill` | `ui/src/components/board/RuleTarget.tsx:74-79, 135-138, 203-211, 300-308`; модель `ui/src/lib/ruleout.ts:38-54` | `outputKind.ruleTarget` |
 | Мастер: ветка `'warp'`, проверка `steer-warpbox` | `ui/src/components/board/SetupWizard.tsx:23, 70-75, 125-129` | слот `setupVia` |
@@ -30,7 +30,8 @@
 | Живые данные — хук `useLive()`, сигналов нет | `ui/src/lib/live.ts:65-138, 201` | `host.core.useLive` — хук |
 | Правка спеки — `pending.edit(next)`, применение само через 800 мс | `ui/src/lib/pending.ts:318-331, 699`; `ui/src/lib/autoapply.ts:21-23` | `host.core.edit` |
 | Строки — один словарь `ru`, `S.ns.key`; простые строки вклеиваются при сборке | `ui/src/copy/index.ts:3-6`; `ui/vite.config.ts:28-78` | у плагина свой словарь; переводы хоста — плагины `type: language` |
-| Модули — `ModulesCard`, `STEER_MODULES`, `moduleFor` | `ui/src/components/ModulesCard.tsx:17-40`; `ui/src/lib/engine.ts:125-151` | раздел «Плагины» |
+| Модули — `ModulesCard`, `STEER_MODULES`, `moduleFor` | `ui/src/components/ModulesCard.tsx:17-40`; `ui/src/lib/engine.ts:125-151` | вкладка «Плагины» |
+| Карточка правила: имя открывает правило, выключатель, удаление, строка состояния; открытое правило — `RuleEditor` на месте списка, у десктопа черновиком до «Сохранить» | `ui/src/components/sections/Home.tsx:716-801`; `ui/src/components/tabs/RulesTab.tsx:134-160, 342, 368-380` | тот же приём у карточки плагина и слота `pluginSettings` |
 
 ## Загрузка
 
@@ -49,6 +50,36 @@
 PLUGINS.md 5.3). `host.platform = 'desktop'`, `host.rpc` идёт через `desk.api.call`
 (`desktop/renderer/main.tsx:28-37`) в `/v1/plugin/<id>/<метод>`.
 
+## Вкладка «Плагины»
+
+Решение владельца (2026-10-25): в панели — вкладка «Плагины», встроенный раздел Rail (`plugins`, между
+«Диагностикой» и «Настройками»). Она заменяет `ModulesCard`. Своих разделов в Rail у плагинов нет:
+WarpBox и ReCheck живут внутри этой вкладки.
+
+**Каталог и репозитории** (верх вкладки):
+- поиск по всем подключённым репозиториям, карточка найденного плагина: описание, версия, что он
+  добавит (виды, права), репозиторий; «Установить» — задание `plugin_install` с ходом и отказом числами
+  (место, совместимость);
+- репозитории: список, «Добавить репозиторий» (адрес и ключ; номер ключа показывается),
+  «Убрать»; у стороннего — пометка «не официальный, splify2 за него не отвечает» (В6).
+
+**Установленные** — карточки по образцу карточки правила (`RuleCard`,
+`ui/src/components/sections/Home.tsx:716-801`):
+
+| Часть карточки правила | У карточки плагина |
+|---|---|
+| имя — кнопка, открывает правило (`onOpen`, `Home.tsx:777`) | имя — кнопка, раскрывает карточку в настройки плагина |
+| выключатель `Switch` справа сверху (`Home.tsx:779`) | включить/выключить плагин (`plugin_enable`/`plugin_disable`) |
+| строка «куда ведёт» бейджем (`Home.tsx:782-787`) | версия, репозиторий, пометка стороннего; доступное обновление |
+| удаление корзиной с подтверждением (`Home.tsx:789-798`, `useConfirm`) | «Удалить» с подтверждением; если вид плагина есть в спеке — отказ называет выходы |
+| строка состояния в подвале (`Home.tsx:799`) | `summary(live)` плагина или общая строка хоста: состояние и причина (`failed`, `pending`, «нужен пакет…») |
+
+Раскрытая карточка — как открытое правило: одна за раз, на месте списка, со стрелкой назад
+(`RulesTab.tsx:134, 342, 368-380`); на десктопе правки спеки — черновиком до «Сохранить», как
+`defer` у `RuleEditor` (`ctx.deferred`). Содержимое — слот `pluginSettings` плагина; под ним хост
+сам добавляет общий блок: версия и «Обновить», автообновление и закрепление версии, права, системные
+пакеты «поставлено для плагина». У плагина без `ui` раскрытая карточка — только общий блок.
+
 ## Модуль плагина
 
 ```ts
@@ -57,9 +88,17 @@ import type { PluginModule } from '@splify2/plugin-api'
 const plugin: PluginModule = {
   activate(host) {
     const { h } = host.preact
-    host.slots.section({
-      id: 'recheck', label: host.i18n.t('section'), icon: ShieldIcon,
-      render: live => h(ReCheck, { host, live }),
+    host.slots.pluginSettings({
+      // строка на свёрнутой карточке: состояние и действие, без техники
+      summary: live => {
+        const st = live.status?.plugins as { id: string; state: string }[] | undefined
+        const me = st?.find(p => p.id === 'recheck')
+        return me?.state === 'enabled'
+          ? { text: host.i18n.t('summary.on'), tone: 'ok' }
+          : { text: host.i18n.t('summary.off'), tone: 'idle' }
+      },
+      // раскрытая карточка: настройки и состояние ReCheck (rpc status/set/forget)
+      render: ctx => h(ReCheckSettings, { host, live: ctx.live, onClose: ctx.close }),
     })
   },
 }
@@ -88,7 +127,7 @@ export default plugin
 | `styles` | `add(css)`, `link(path)` — в shadow root |
 | `slots` | точки встраивания (ниже) |
 | `themes` | `register`, `current` |
-| `nav` | `open(section)`, `openScreen(id)` |
+| `nav` | `open(section)`, `openPlugin(id?)` — вкладка «Плагины» с раскрытой карточкой |
 | `prefs` | настройки интерфейса плагина на роутере |
 | `notify`, `confirm` | сообщение и подтверждение панели |
 
@@ -115,17 +154,17 @@ export default plugin
 
 | Слот | Заменяет | Что регистрирует |
 |---|---|---|
-| `section` | `ExtraSection` (`Console.tsx:50-55`), `ITEMS` (`Rail.tsx:29-37`) | раздел в полосе: `id`, `label`, `icon`, `render(live)`, `order`, `badge(live)` |
+| **`pluginSettings`** — главный | `desktop/renderer/main.tsx:48` (`EXTRA = [warpSection, recheckSection]`), `ModulesCard` | содержимое раскрытой карточки плагина во вкладке «Плагины» (`render(ctx)`) и строка на свёрнутой (`summary(live)`) |
 | `boardTile` | плитки `Home.tsx:1124-1146`, `WarpTile` (`:1311`) | плитка «Доски»: `when(live)`, `render(live)` |
 | `outputKind` | `OutputKind` (`model.ts:17-19`), `WarpPill` и часть WARP блока «Куда» | вид выхода: `create`, `editor`, `summary`, `ruleTarget`, `hidesOwned` |
-| `vpnScreen` | `Screen` в `Vpn.tsx:24` | экран раздела VPN |
-| `settings` | `Screen` в `Settings.tsx:28` | экран «Настроек» |
 | `setupVia` | `Via` мастера (`SetupWizard.tsx:23`) | ветка «через что» мастера |
 | `badge` | `ProtoId`/`FEATURE_ORDER` (`badges.ts:26-44, 380-402`) | значок выхода в группе и порядке панели |
 | `diag` | — | проверка в «Диагностике» с приговором `ok/note/warn/fail` (как `DiagCheck`, `ui/src/lib/live.ts:26`) |
+| `railSection` — **исключение** | `ExtraSection` (`Console.tsx:50-55`) | свой раздел в Rail; работает, только если манифест объявил `"ui": {"rail": true}` и человек не снял «показывать в полосе» в карточке плагина |
 
 **Встроенные разделы и экраны панели регистрируются тем же API** — внешнего у них нет, закрытые
-объединения уходят. `order` встроенных разделов — 100…700 по порядку Rail, плагины встают между ними.
+объединения уходят. По умолчанию плагин в Rail не попадает: WarpBox и ReCheck живут внутри вкладки
+«Плагины».
 
 `render` каждого слота обёрнут предохранителем: ошибка отрисовки показывает «Плагин X не
 отрисовался — отключить», панель живёт. Ошибка в `activate` отключает плагин в этой сессии.

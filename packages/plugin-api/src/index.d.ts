@@ -227,19 +227,32 @@ export interface Styles {
 
 export type IconComponent = ComponentType<{ className?: string; class?: string; 'aria-hidden'?: boolean | 'true' }>
 
-/** Встроенные разделы панели (ui/src/lib/sections.ts:5). */
-export type BuiltinSection = 'home' | 'rules' | 'vpn' | 'dns' | 'requests' | 'diag' | 'settings'
+/** Встроенные разделы панели (ui/src/lib/sections.ts:5) и новая вкладка «Плагины». */
+export type BuiltinSection = 'home' | 'rules' | 'vpn' | 'dns' | 'requests' | 'diag' | 'plugins' | 'settings'
 
 export interface Slots {
-  /** Раздел в левой полосе (Rail) — как ExtraSection (ui/src/components/Console.tsx:50-55). id — "<plugin>" или "<plugin>.<имя>". */
-  section(s: {
+  /**
+   * ГЛАВНЫЙ СЛОТ UI ПЛАГИНА. Вкладка «Плагины» показывает карточку каждого установленного плагина —
+   * тем же приёмом, что карточки правил (RuleCard, ui/src/components/sections/Home.tsx:716-801):
+   * имя, выключатель, удаление, строка состояния; щелчок по имени раскрывает карточку в настройки
+   * плагина (как правило открывается в RuleEditor, ui/src/components/tabs/RulesTab.tsx:134-160, 368-380).
+   * render — содержимое раскрытой карточки, summary — строка на свёрнутой.
+   * Регистрируется один раз на плагин; повторная регистрация заменяет прежнюю.
+   */
+  pluginSettings(p: PluginSettingsSlot): Dispose
+
+  /**
+   * ИСКЛЮЧЕНИЕ: собственный раздел в полосе (Rail). По умолчанию плагин в Rail не попадает — его место
+   * во вкладке «Плагины». Слот работает, только если манифест объявил "ui": {"rail": true} и человек
+   * не снял «показывать в полосе» в карточке плагина; без этого регистрация ничего не показывает.
+   */
+  railSection(s: {
     id: string
     label: string
     icon: IconComponent
     render(live: Live): VNode | null
-    /** Место среди разделов; встроенные — 100, 200 … 700 по порядку Rail. */
+    /** Место среди разделов; встроенные — 100, 200 … 800 по порядку Rail. */
     order?: number
-    /** Счётчик или тревога на значке раздела. */
     badge?(live: Live): { text: string; alarm?: boolean } | null
   }): Dispose
 
@@ -253,12 +266,6 @@ export interface Slots {
 
   /** Редактор и представление своего вида выхода. */
   outputKind(k: OutputKindSlot): Dispose
-
-  /** Экран в разделе VPN (сейчас закрытый список экранов, ui/src/components/sections/Vpn.tsx:24). */
-  vpnScreen(s: { id: string; label: string; icon: IconComponent; render(): VNode | null; order?: number }): Dispose
-
-  /** Экран в «Настройках» (ui/src/components/sections/Settings.tsx:28). */
-  settings(s: { id: string; label: string; icon?: IconComponent; render(): VNode | null; order?: number }): Dispose
 
   /** Шаг мастера первой настройки, ветка «через что» (ui/src/components/board/SetupWizard.tsx:23). */
   setupVia(v: {
@@ -282,6 +289,21 @@ export interface Slots {
 
   /** Проверка в разделе «Диагностика». */
   diag(d: { id: string; label: string; run(): Promise<DiagResult[]> }): Dispose
+}
+
+export interface PluginSettingsSlot {
+  /** Содержимое раскрытой карточки плагина во вкладке «Плагины». */
+  render(ctx: PluginSettingsContext): VNode | null
+  /** Строка состояния на свёрнутой карточке («Работает · 3 сайта обходятся»); null — общая строка хоста. */
+  summary?(live: Live): { text: string; tone?: 'ok' | 'warn' | 'bad' | 'idle' } | null
+}
+
+export interface PluginSettingsContext {
+  live: Live
+  /** Свернуть карточку (как закрытие RuleEditor). */
+  close(): void
+  /** Карточка открыта в приложении для ПК: правки спеки — черновиком до «Сохранить» (как defer у RuleEditor). */
+  readonly deferred: boolean
 }
 
 export interface OutputKindSlot {
@@ -349,8 +371,8 @@ export interface Themes {
 export interface Nav {
   /** Открыть раздел: встроенный или зарегистрированный (событие splify:section, Console.tsx:118-128). */
   open(section: BuiltinSection | string): void
-  /** Открыть экран настроек или VPN по id слота. */
-  openScreen(id: string): void
+  /** Открыть вкладку «Плагины» с раскрытой карточкой плагина (по умолчанию — своего). */
+  openPlugin(id?: string): void
 }
 
 /** Настройки интерфейса плагина (что развернуть, какой фильтр) — на роутере, у каждого плагина свои. */

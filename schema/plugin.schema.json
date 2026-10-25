@@ -724,6 +724,11 @@
         "desktop": {
           "type": "boolean",
           "default": true
+        },
+        "rail": {
+          "type": "boolean",
+          "default": false,
+          "description": "Исключение: свой раздел в Rail (слот railSection). По умолчанию интерфейс плагина — карточка во вкладке «Плагины»."
         }
       },
       "additionalProperties": true
