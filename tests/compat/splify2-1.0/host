@@ -5,9 +5,10 @@
 (S2_SANDBOX): спека-фикстура, каталог списков, сеть из фикстур, настройки плагина. Плагин видит только это.
 
     host fetch URL ФАЙЛ [--timeout СЕК]    host fetch-mode [get | set always|off]    host paths
-    host spec get [ФАЙЛ] | uses ПУТЬ | check ФАЙЛ    host apply    host engine
+    host spec get [--applied] [ФАЙЛ] | uses ПУТЬ | check ФАЙЛ    host apply    host engine
     host settings get КЛЮЧ | set КЛЮЧ ЗНАЧЕНИЕ
     host state check|export|import КАТАЛОГ    host hook backup_sections --ctx ФАЙЛ [--plugin ID]
+    host sub list | info ИМЯ | refresh ИМЯ    host sub quota ИМЯ    host sub title ИМЯ [НАЗВАНИЕ]
 """
 import json, os, re, shutil, sys
 
@@ -84,10 +85,16 @@ def cmd_spec(a):
     if a[0] == "get":
         if not os.path.exists(SPEC):
             fail("спеки нет")
+        src = SPEC
+        if len(a) > 1 and a[1] == "--applied":
+            a = [a[0]] + a[2:]
+            applied = os.path.join(W, "spec.applied.json")
+            if os.path.exists(applied):
+                src = applied
         if len(a) > 1:
-            shutil.copyfile(SPEC, a[1])
+            shutil.copyfile(src, a[1])
             out({"ok": True})
-        sys.stdout.write(open(SPEC, encoding="utf-8").read())
+        sys.stdout.write(open(src, encoding="utf-8").read())
         sys.exit(0)
     if a[0] == "uses" and len(a) > 1:
         sys.exit(0 if os.path.exists(SPEC) and a[1] in open(SPEC, encoding="utf-8").read() else 1)
@@ -217,8 +224,53 @@ def cmd_hook(a):
     out({"ok": True, "results": []})
 
 
+def cmd_sub(a):
+    if not a or a[0] not in ("list", "info", "refresh", "quota", "title"):
+        usage()
+    f = os.path.join(W, "subs", "subs.json")
+    try:
+        subs = json.load(open(f, encoding="utf-8"))
+    except Exception:
+        subs = {}
+    if a[0] == "list":
+        out({"subs": [{"name": n, "title": v.get("title", ""), "url": "", "kind": v["kind"], "present": True,
+                       "bytes": 100, "mtime": 1700000000, "used": 0, "used_nodes": 0} for n, v in subs.items()],
+             "hwid": "stub"})
+    if len(a) < 2:
+        usage()
+    name = a[1]
+    sub = subs.get(name)
+    if sub is None:
+        fail("подписки «%s» нет" % name)
+    if a[0] == "info":
+        out({"url": "", "name": name, "kind": sub["kind"], "present": True, "bytes": 100, "mtime": 1700000000})
+    if a[0] == "refresh":
+        if sub["kind"] != "url":
+            out({"ok": False, "error": "узлы заданы ссылками — обновлять нечем"})
+        out({"ok": True, "name": name, "changed": False, "bytes": 100, "usable": 3})
+    if a[0] == "quota":
+        d = {"ok": True, "kind": sub["kind"], "name": name}
+        if sub["kind"] != "url":
+            d.update(asked=False, why="узлы заданы ссылками — остаток брать негде")
+        else:
+            d["asked"] = True
+            if "quota" in sub:
+                d["quota"] = sub["quota"]
+            else:
+                d["why"] = "панель не сообщила остаток трафика"
+        out(d)
+    title = a[2] if len(a) > 2 else ""
+    if len(title.encode("utf-8")) > 200:
+        fail("название слишком длинное")
+    if any(ord(c) < 32 for c in title):
+        fail("в названии управляющие знаки")
+    sub["title"] = title
+    atomic(f, json.dumps(subs, ensure_ascii=False) + "\n")
+    out({"ok": True, "name": name, "title": title})
+
+
 CMDS = {"fetch": cmd_fetch, "fetch-mode": cmd_fetch_mode, "paths": cmd_paths, "spec": cmd_spec, "apply": cmd_apply,
-        "engine": cmd_engine, "settings": cmd_settings, "state": cmd_state, "hook": cmd_hook}
+        "engine": cmd_engine, "settings": cmd_settings, "state": cmd_state, "hook": cmd_hook, "sub": cmd_sub}
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in CMDS:

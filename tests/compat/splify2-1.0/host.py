@@ -13,7 +13,7 @@ import json, os, re, shutil, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 API = "1.0.0"
 HOOKS = ["pre_spec_set", "post_spec_set", "pre_apply", "post_apply", "post_apply_fail", "heal",
-         "backup_sections", "support_report", "purge", "plugin_changed"]
+         "backup_sections", "support_report", "purge", "plugin_changed", "sub_fields"]
 OFFICIAL_ONLY = {}  # moved-методы: плагин назван в methods.tsv
 
 fails = 0
@@ -144,7 +144,7 @@ def main(pdir):
         shutil.copy(os.path.join(HERE, "fixtures", "spec.json"), spec)
         os.makedirs(os.path.join(work, "marks"), exist_ok=True)
         # Песочница служб хоста: каталог списков, «сеть», состояние каркаса, каталоги плагина (conf, state).
-        for sub in ("lists", "web", "core-state"):
+        for sub in ("lists", "web", "core-state", "subs"):
             shutil.copytree(os.path.join(HERE, "fixtures", sub), os.path.join(work, sub))
         os.makedirs(os.path.join(work, "conf"), exist_ok=True)
         os.makedirs(os.path.join(work, "state"), mode=0o700, exist_ok=True)
@@ -197,6 +197,11 @@ def main(pdir):
                 if h == "support_report":
                     s = d.get("section")
                     check(s is None or (isinstance(s, dict) and isinstance(s.get("text", ""), str)), "хук support_report: section.text — строка")
+                if h == "sub_fields":
+                    fl = d.get("fields", {})
+                    check(isinstance(fl, dict) and all(isinstance(v, dict) and all(isinstance(x, (str, int, bool)) for x in v.values())
+                                                       for v in fl.values()),
+                          "хук sub_fields: fields — «имя подписки → поля», значения — строка, число или флаг")
                 if h == "purge":
                     check(isinstance(d.get("plan", []), list), "хук purge (%s): plan — массив строк" % c)
             if h == "backup_sections":

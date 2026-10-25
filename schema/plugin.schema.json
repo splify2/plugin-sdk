@@ -813,7 +813,8 @@
               "backup_sections",
               "support_report",
               "purge",
-              "plugin_changed"
+              "plugin_changed",
+              "sub_fields"
             ]
           },
           "additionalProperties": {
