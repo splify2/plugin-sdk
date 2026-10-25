@@ -1,1 +1,7 @@
 node_modules/
+bin/
+dist/
+build/
+.s2p-stage/
+*.tgz
+*.sec
