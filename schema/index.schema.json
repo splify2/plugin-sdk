@@ -255,9 +255,9 @@
         "assets": {
           "type": "object",
           "minProperties": 1,
-          "description": "Ключ — архитектура OpenWrt или all.",
+          "description": "Ключ — архитектура OpenWrt или all; «<арх>@<вариант>» — вариант сборки (lite). Без @ — вариант full.",
           "propertyNames": {
-            "pattern": "^(all|[a-z0-9_]+(-[a-z0-9_]+)*)$"
+            "pattern": "^(all|[a-z0-9_]+(-[a-z0-9_]+)*)(@[a-z][a-z0-9-]*)?$"
           },
           "additionalProperties": {
             "$ref": "#/$defs/asset"
@@ -301,6 +301,11 @@
           "type": "integer",
           "minimum": 0,
           "description": "Байт после распаковки (сумма размеров из MANIFEST)"
+        },
+        "standalone": {
+          "type": "boolean",
+          "default": false,
+          "description": "Архив работает и без steer-core (у манифеста есть standalone)."
         }
       },
       "anyOf": [

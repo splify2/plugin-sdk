@@ -183,6 +183,34 @@
         },
         "additionalProperties": true
       }
+    },
+    "variant": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "default": "full",
+      "description": "Вариант сборки того же плагина: full — обычный; lite — облегчённый для мини-роутеров. docs/manifest.md, «Варианты»."
+    },
+    "standalone": {
+      "type": "object",
+      "description": "Только у варианта, который работает и без steer-core (мини-роутер): своё мини-ядро и обновление себя. docs/manifest.md, «Варианты».",
+      "required": [
+        "prog"
+      ],
+      "properties": {
+        "prog": {
+          "$ref": "#/$defs/relpath"
+        },
+        "init": {
+          "$ref": "#/$defs/relpath",
+          "description": "init-скрипт procd, который scripts/postinst ставит в /etc/init.d, только если steer-core нет"
+        },
+        "update": {
+          "type": "boolean",
+          "default": true,
+          "description": "мини-ядро само обновляет этот плагин в фоне"
+        }
+      },
+      "additionalProperties": true
     }
   },
   "additionalProperties": true,

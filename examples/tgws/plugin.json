@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "id": "tgws",
+  "version": "2.1.0",
+  "variant": "lite",
+  "name": "Мост Telegram",
+  "description": "Telegram через веб-сокет без туннеля",
+  "license": "GPL-3.0-only",
+  "compat": {
+    "steer-api": "^1.0",
+    "host-api": "^1.0"
+  },
+  "arch": [
+    "mipsel_24kc"
+  ],
+  "permissions": [
+    "net.admin",
+    "nft",
+    "http",
+    "spec.transform"
+  ],
+  "steer": {
+    "kinds": [
+      {
+        "name": "tgws",
+        "keys": "kinds/tgws.schema.json",
+        "caps": [
+          "mark"
+        ],
+        "helper": {
+          "prog": "bin/stgws",
+          "cmd": "tgws",
+          "argv": [
+            "tgws",
+            "{out}",
+            "--conf",
+            "{conf}"
+          ]
+        },
+        "nft": [
+          "nft/tgws-out.nft"
+        ],
+        "resources": {
+          "ports": 1
+        },
+        "texts": {
+          "lan_only": "у трафика самого роутера моста нет"
+        }
+      }
+    ],
+    "hooks": {
+      "pre_apply": {
+        "prog": "bin/stgws",
+        "argv": [
+          "tgws-pre-apply"
+        ]
+      }
+    }
+  },
+  "standalone": {
+    "prog": "bin/stgws",
+    "init": "scripts/tgws.init",
+    "update": true
+  },
+  "scripts": {
+    "postinst": "scripts/postinst",
+    "prerm": "scripts/prerm",
+    "migrate": "scripts/migrate"
+  },
+  "keep": []
+}
