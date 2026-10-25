@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://splify2.github.io/plugin-sdk/schema/kind-keys.schema.json",
   "title": "Схема ключей вида плагина (kinds/<вид>.schema.json): разрешённое подмножество JSON Schema",
-  "description": "Ядро проверяет ключи выхода вида плагина этим подмножеством без сторонней библиотеки. Ключевые слова вне списка — отказ установки (s2p lint ловит раньше). Описание — docs/manifest.md, «Ключи вида».",
+  "description": "Ядро проверяет ключи выхода вида плагина этим подмножеством без сторонней библиотеки. Ключевые слова вне списка — отказ установки (s2p lint ловит раньше). Слова x-… те же, что в схеме спеки ядра (`steer spec-schema`): одна схема — один код формы в каркасе. Описание — docs/manifest.md, «Ключи вида».",
   "$ref": "#/$defs/node",
   "$defs": {
     "node": {
@@ -42,6 +42,39 @@
         "x-path": {
           "enum": ["etc", "conf", "abs"],
           "description": "Строка — путь к файлу: etc — относительно каталога спеки, conf — относительно conf/<id>, abs — только абсолютный."
+        },
+        "x-example": {
+          "description": "Годное значение ключа (для подсказки в форме и для стенда); без него ядро берёт default, первое значение enum или значение по типу и границам."
+        },
+        "x-ref": {
+          "type": "object",
+          "properties": {
+            "section": { "enum": ["outputs", "lists", "clients", "dns.upstreams"] },
+            "also": { "type": "array", "items": { "type": "string" } }
+          },
+          "required": ["section"],
+          "additionalProperties": false,
+          "description": "Значение (у массива — на items) называет запись раздела спеки; also — слова, допустимые кроме имён (all, lan, direct). Форма рисует выбор среди записей, разбор отказывает на несуществующее имя."
+        },
+        "x-one-or-list": {
+          "type": "boolean",
+          "description": "У массива: вместо списка годится одно значение."
+        },
+        "x-when": {
+          "type": "object",
+          "additionalProperties": { "type": "array", "minItems": 1 },
+          "description": "{\"сосед\": [значения]} — ключ имеет смысл при таком значении соседнего ключа той же записи (с умолчаниями схемы)."
+        },
+        "x-when-set": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Ключ имеет смысл, когда записаны эти соседи."
+        },
+        "x-needs": {
+          "type": "object",
+          "additionalProperties": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+          "description": "{\"значение\": [соседи]} — при этом значении без этих соседей разбор отказывает; ключ \"*\" — при любом значении."
         }
       },
       "additionalProperties": false
