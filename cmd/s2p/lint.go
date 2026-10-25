@@ -40,6 +40,7 @@ func (l *linter) errors() int {
 type lintOpts struct {
 	arch       string // под какую архитектуру собрано; пусто — не сверять машинный код
 	schemaOnly bool
+	official   bool // плагин официального репозитория: обращения к внутренностям каркаса — отказ, а не предупреждение
 }
 
 var (
@@ -106,6 +107,7 @@ func lintTree(t *tree, o lintOpts) *linter {
 	l.compat(p)
 	l.permissions(p, t)
 	l.splify2(p)
+	l.internals(p, t, o)
 	l.files(p, t)
 	l.names(p)
 	l.kindsKeys(p, t)

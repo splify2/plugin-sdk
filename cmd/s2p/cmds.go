@@ -54,6 +54,7 @@ func cmdLint(args []string) {
 	arch := fs.String("arch", "", "сверять машинный код с этой архитектурой (для каталога)")
 	schemaOnly := fs.Bool("schema-only", false, "только схема манифеста")
 	strict := fs.Bool("strict", false, "предупреждения — тоже отказ")
+	official := fs.Bool("official", false, "плагин официального репозитория: обращение к внутренностям каркаса — отказ (splify2-api, раздел 9)")
 	pos := parseInterleaved(fs, args)
 	if len(pos) != 1 {
 		fatal("lint: нужен один путь: каталог проекта, .s2p или plugin.json")
@@ -64,7 +65,7 @@ func cmdLint(args []string) {
 		fatal("%v", err)
 	}
 	var t *tree
-	o := lintOpts{arch: *arch, schemaOnly: *schemaOnly}
+	o := lintOpts{arch: *arch, schemaOnly: *schemaOnly, official: *official}
 	switch {
 	case st.IsDir():
 		cfg, err := loadCfg(target)

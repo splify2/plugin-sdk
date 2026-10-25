@@ -28,7 +28,8 @@
   [steer-abi](docs/steer-abi.md)
 - **Заготовки**: программа-помощник, `.so`, интерфейс на vite, тема, перевод — каждая собирается в `.s2p`
 - **`s2p lint`** смотрит на манифест, файлы, права, теги совместимости, словари и сам машинный код:
-  машина ELF, экспорт `.so`, `DT_NEEDED`
+  машина ELF, экспорт `.so`, `DT_NEEDED`; в программах плагина — обращения к внутренностям каркаса вместо служб
+  хоста (`--official` делает их отказом)
 - **`s2p index`** собирает и подписывает индекс репозитория: много плагинов, много версий и архитектур,
   отзыв и удаление версий
 
@@ -72,7 +73,7 @@ s2p verify repo/index.json --pub index.pub --base repo
 | [docs/index.md](docs/index.md) · [schema/index.schema.json](schema/index.schema.json) | индекс репозитория, отбор версии |
 | [docs/s2p.md](docs/s2p.md) | архив, подпись, раскладка, установка, откат, автообновление |
 | [docs/steer-api.md](docs/steer-api.md) | steer-api v1: программы, evline, хуки, сокет, nft, ресурсы |
-| [docs/splify2-api.md](docs/splify2-api.md) | splify2-api v1: хуки каркаса, задачи, события, псевдонимы и переопределения методов; тесты совместимости `tests/compat` |
+| [docs/splify2-api.md](docs/splify2-api.md) | splify2-api v1: хуки каркаса, задачи, события, псевдонимы и переопределения методов, службы хоста и граница API; тесты совместимости `tests/compat` |
 | [docs/steer-abi.md](docs/steer-abi.md) · [include/steer/plugin.h](include/steer/plugin.h) | steer-abi v1: `.so` в `steerd` |
 | [docs/host-api.md](docs/host-api.md) · [packages/plugin-api](packages/plugin-api) | host API панели, типы `@splify2/plugin-api` |
 | [docs/spec-fields.md](docs/spec-fields.md) · [docs/migration-2.1.md](docs/migration-2.1.md) | поля спеки для ядра; переход на steer-core 2.1.0 |

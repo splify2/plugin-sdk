@@ -124,3 +124,52 @@ func TestArchiveDeterministicAndStrict(t *testing.T) {
 		t.Fatal("два члена gzip должны отвергаться")
 	}
 }
+
+func internalsLint(t *testing.T, official bool, files map[string]string) *linter {
+	t.Helper()
+	tr := &tree{files: map[string]fileSpec{}}
+	for p, d := range files {
+		tr.files[p] = fileSpec{0755, []byte(d)}
+	}
+	l := &linter{}
+	l.internals(nil, tr, lintOpts{official: official})
+	return l
+}
+
+func TestInternalsBoundary(t *testing.T) {
+	bad := map[string]string{
+		"bin/a":   "#!/bin/sh\n. /usr/lib/splify2/lib.sh\n",
+		"bin/b":   "#!/bin/sh\n. \"$RPCD_LIB/common.sh\"\n",
+		"bin/c":   "#!/bin/sh\nSPEC=/x\n",
+		"bin/d":   "#!/bin/sh\ncat \"$SPEC\" \"${LISTS}/x\"\n",
+		"hooks/e": "#!/bin/sh\ncall_lock state\n",
+		"hooks/f": "#!/bin/sh\nx=$(spec_json)\n",
+		"hooks/g": "#!/bin/sh\nuci -q get splify2.main.manifest_url\n",
+		"hooks/h": "#!/bin/sh\ncat /etc/steer/spec.json\n",
+		"hooks/i": "#!/bin/sh\nif download \"$u\" \"$f\"; then :; fi\n",
+	}
+	for p, d := range bad {
+		if l := internalsLint(t, true, map[string]string{p: d}); l.errors() == 0 {
+			t.Errorf("%s: обращение к каркасу не найдено", p)
+		}
+	}
+	// предупреждение, а не отказ — без --official
+	if l := internalsLint(t, false, map[string]string{"bin/a": bad["bin/a"]}); l.errors() != 0 || len(l.ds) == 0 {
+		t.Errorf("без official обращение — предупреждение: %+v", l.ds)
+	}
+	// то, что разрешено: свои переменные, свои функции, комментарии, каталоги плагина, службы хоста, case-метки
+	good := map[string]string{
+		"bin/ok": "#!/bin/sh\n# . /usr/lib/splify2/lib.sh — в комментарии\n. \"$SPLIFY2_LIB\"\n" +
+			"\"$SPLIFY2_HOST\" spec get \"$f\"\nLISTS_DIR=/x\nSTEER_BIN=/y\ncat \"$STEER_PLUGIN_CONF/a\" \"$STEER_PLUGIN_STATE/b\"\n" +
+			"sub_done=0; json_get_var sub_done sub\nx=\"${sub_done:-0}\"\ncat /etc/steer/plugins/conf/x/settings.json\n",
+		"lib/base.sh": "#!/bin/sh\nsanitize_list() { :; }\nsanitize_list a b\nfetch_file() { :; }\nfetch_file u f\n",
+		"bin/lists":   "#!/bin/sh\ncase \"$1\" in\n    lists|fetch_mode|\\\n    fetch_mode_set|sub_x) ;;\nesac\n",
+	}
+	if l := internalsLint(t, true, good); l.errors() != 0 || len(l.ds) != 0 {
+		t.Errorf("ложное срабатывание: %+v", l.ds)
+	}
+	// своё common.sh в архиве плагина — не обращение к каркасу
+	if l := internalsLint(t, true, map[string]string{"lib/common.sh": "#!/bin/sh\n:\n", "bin/x": "#!/bin/sh\n. \"$d/lib/common.sh\"\n"}); l.errors() != 0 {
+		t.Errorf("свой файл common.sh: %+v", l.ds)
+	}
+}

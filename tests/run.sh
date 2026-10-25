@@ -229,6 +229,18 @@ refuse "compat: хук ответил не объектом JSON" 'FAIL.*хук'
 rm -rf h-noexec; cp -r "$ROOT/examples/splify2-hooks" h-noexec; chmod -x h-noexec/hooks/hook
 refuse "lint: хук без бита исполнения" 'исполняем' "$S" lint h-noexec
 refuse "compat: хук без бита исполнения" 'FAIL.*исполняем' sh "$C" h-noexec
+section "граница API (s2p lint --official, заглушка хоста)"
+check "образец splify2-hooks не обращается к внутренностям каркаса" "$S" lint --official "$ROOT/examples/splify2-hooks"
+rm -rf h-bound; cp -r "$ROOT/examples/splify2-hooks" h-bound
+printf '#!/bin/sh\n# . /usr/lib/splify2/lib.sh — в комментарии не считается\n. /usr/lib/splify2/rpcd/common.sh\ncat "$SPEC" "$LISTS/x"\ncall_lock state\n' > h-bound/hooks/hook; chmod +x h-bound/hooks/hook
+check "lint: обращение к каркасу без --official — предупреждение, код 0" sh -c "'$S' lint h-bound 2>&1 | grep -q 'граница API'"
+refuse "lint --official: путь каркаса" 'путь каркаса /usr/lib/splify2' "$S" lint --official h-bound
+refuse "lint --official: файл каркаса" 'файл каркаса common.sh' "$S" lint --official h-bound
+refuse "lint --official: переменная каркаса" 'переменная каркаса SPEC' "$S" lint --official h-bound
+refuse "lint --official: функция каркаса" 'функция каркаса call_lock' "$S" lint --official h-bound
+refuse "compat: обращение к каркасу" 'FAIL.*граница API' sh "$C" h-bound
+printf '#!/bin/sh\nread -r x\n. "$SPLIFY2_LIB"\n"$SPLIFY2_HOST" settings get nothing >/dev/null\nprintf "{\\"ok\\":true}\\n"\n' > h-bound/hooks/hook
+check "lint --official: службы хоста и библиотека — не обращение к каркасу" "$S" lint --official h-bound
 check "матрица совместимости: строка для splify2-api 1.0.0 и каталог заглушки" sh -c "grep -q '\"splify2-api\": \"1.0.0\"' '$ROOT/tests/compat/matrix.json' && [ -f '$ROOT/tests/compat/splify2-1.0/host.py' ]"
 
 section "сборка C-плагинов (zig, musl)"

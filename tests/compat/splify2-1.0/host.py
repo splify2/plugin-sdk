@@ -2,8 +2,9 @@
 """Заглушка хоста splify2, splify2-api 1.0 (docs/splify2-api.md): подключится ли плагин.
 
 Не копия каркаса, а стенд, который ведёт себя как он по спецификации: таблица methods.tsv версии, права,
-разбор блока `splify2`, запуск хуков, задач и событий по фикстурам контекста. Печатает по строке на проверку
-(`ok  …` или `FAIL …`), код возврата — число отказов (0 — плагин подключится).
+разбор блока `splify2`, запуск хуков, задач и событий по фикстурам контекста, службы хоста (`host`, `lib.sh`) поверх
+каталога-песочницы. Плагин в песочнице видит только окружение раздела 7 спецификации — ни путей, ни швов каркаса.
+Печатает по строке на проверку (`ok  …` или `FAIL …`), код возврата — число отказов (0 — плагин подключится).
 
     host.py <каталог плагина>
 """
@@ -61,10 +62,22 @@ def relpath_ok(p):
     return isinstance(p, str) and p != "" and not p.startswith("/") and ".." not in p.split("/")
 
 
-def run_prog(pdir, pid, prog, arg, stdin_text, env_extra, timeout):
+def sandbox_env(pid, pdir, work):
+    """Окружение программы плагина — ровно раздел 7 спецификации. Переменные разработчика (SPEC, LISTS, …) не просачиваются."""
+    env = {
+        "PATH": os.path.join(HERE, "tools") + ":" + os.environ.get("PATH", "/usr/bin:/bin"),
+        "HOME": work, "LANG": "C.UTF-8", "TMPDIR": work,
+        "STEER_PLUGIN_ID": pid, "STEER_PLUGIN_DIR": pdir,
+        "STEER_PLUGIN_CONF": os.path.join(work, "conf"), "STEER_PLUGIN_STATE": os.path.join(work, "state"),
+        "SPLIFY2_API": "1", "SPLIFY2_LIB": os.path.join(HERE, "lib.sh"), "SPLIFY2_HOST": os.path.join(HERE, "host"),
+        "S2_SANDBOX": work,
+    }
+    return env
+
+
+def run_prog(pdir, pid, prog, arg, stdin_text, env_extra, timeout, work):
     path = os.path.join(pdir, prog)
-    env = dict(os.environ, STEER_PLUGIN_ID=pid, STEER_PLUGIN_DIR=pdir, STEER_PLUGIN_CONF=os.path.join(pdir, "conf"),
-               SPLIFY2_API="1", SPLIFY2_LIB="/nonexistent/lib.sh", SANDBOX=os.environ.get("SANDBOX", "/tmp"))
+    env = sandbox_env(pid, pdir, work)
     env.update(env_extra)
     cmd = [path] + ([arg] if arg else [])
     try:
@@ -80,6 +93,35 @@ def json_object(text):
     except Exception:
         return None
     return d if isinstance(d, dict) else None
+
+
+def backup_roundtrip(pdir, pid, prog, to, work, spec):
+    """export → check → restore → export: данные плагина в архиве переживают круг и ничего не теряют и не плодят."""
+    env = {"SANDBOX": work, "SPLIFY2_HOOK": "backup_sections", "SPLIFY2_SPEC_TMP": spec}
+
+    def call(ctx):
+        body = json.dumps({"api": 1, "hook": "backup_sections", "plugin": pid, "ctx": ctx}, ensure_ascii=False) + "\n"
+        rc, out, err = run_prog(pdir, pid, prog, None, body, env, to, work)
+        return rc, json_object(out)
+
+    rc, d1 = call({"op": "export"})
+    secs = (d1 or {}).get("sections", {})
+    if not isinstance(secs, dict):
+        return
+    rc, dc = call({"op": "check", "sections": secs})
+    check(rc == 0 and dc is not None and dc.get("ok") is True, "хук backup_sections: check принимает то, что сам же отдал")
+    if dc is not None and dc.get("ok") is False:
+        check(isinstance(dc.get("error", ""), str), "хук backup_sections: отказ check называет причину")
+    rc, dr = call({"op": "restore", "sections": secs})
+    check(rc == 0 and dr is not None and dr.get("ok") is True, "хук backup_sections: restore принимает то, что сам же отдал")
+    if dr is not None and "restored" in dr:
+        check(isinstance(dr["restored"], list) and all(isinstance(x, dict) for x in dr["restored"]),
+              "хук backup_sections: restored — массив объектов")
+    rc, d2 = call({"op": "export"})
+    check(d2 is not None and d2.get("sections", {}) == secs, "хук backup_sections: после restore export отдаёт то же самое")
+    # Раздел, которого плагин не знает, не роняет хук: либо отказ с причиной, либо молчаливое согласие.
+    rc, du = call({"op": "check", "sections": {"zz_unknown_section": "x"}})
+    check(rc == 0 and du is not None and isinstance(du.get("ok"), bool), "хук backup_sections: незнакомый раздел — ответ, а не падение")
 
 
 def main(pdir):
@@ -101,6 +143,11 @@ def main(pdir):
         spec = os.path.join(work, "spec.json")
         shutil.copy(os.path.join(HERE, "fixtures", "spec.json"), spec)
         os.makedirs(os.path.join(work, "marks"), exist_ok=True)
+        # Песочница служб хоста: каталог списков, «сеть», состояние каркаса, каталоги плагина (conf, state).
+        for sub in ("lists", "web", "core-state"):
+            shutil.copytree(os.path.join(HERE, "fixtures", sub), os.path.join(work, sub))
+        os.makedirs(os.path.join(work, "conf"), exist_ok=True)
+        os.makedirs(os.path.join(work, "state"), mode=0o700, exist_ok=True)
         env0 = {"SANDBOX": work}
 
         # --- хуки
@@ -121,7 +168,7 @@ def main(pdir):
             if hd.get("critical"):
                 ok("хук %s: critical — карточка плагина покажет это как право" % h)
             if h == "backup_sections":
-                cases = ["backup_sections_export", "backup_sections_restore"]
+                cases = ["backup_sections_export", "backup_sections_check", "backup_sections_restore"]
             elif h == "purge":
                 cases = ["purge_dry", "purge"]
             else:
@@ -129,7 +176,7 @@ def main(pdir):
             for c in cases:
                 shutil.copy(os.path.join(HERE, "fixtures", "spec.json"), spec)
                 rc, out, err = run_prog(pdir, pid, prog, None, fixture(c, pid, spec),
-                                        dict(env0, SPLIFY2_HOOK=h, SPLIFY2_SPEC_TMP=spec), to)
+                                        dict(env0, SPLIFY2_HOOK=h, SPLIFY2_SPEC_TMP=spec), to, work)
                 d = json_object(out)
                 check(rc == 0 and d is not None and isinstance(d.get("ok"), bool),
                       "хук %s (%s): код 0 и объект с булевым ok за %d с (код %s)" % (h, c, to, rc))
@@ -152,6 +199,8 @@ def main(pdir):
                     check(s is None or (isinstance(s, dict) and isinstance(s.get("text", ""), str)), "хук support_report: section.text — строка")
                 if h == "purge":
                     check(isinstance(d.get("plan", []), list), "хук purge (%s): plan — массив строк" % c)
+            if h == "backup_sections":
+                backup_roundtrip(pdir, pid, prog, to, work, spec)
 
         # --- задачи
         seen = set()
@@ -174,7 +223,7 @@ def main(pdir):
             check(relpath_ok(ev.get("prog")) and os.access(os.path.join(pdir, ev.get("prog", "")), os.X_OK), "события: программа исполняема")
             check(all(re.fullmatch(r"[a-z0-9-]+|\*", s) for s in ev.get("subscribe", ["*"])), "события: имена в subscribe годны")
             if relpath_ok(ev.get("prog")) and os.access(os.path.join(pdir, ev["prog"]), os.X_OK):
-                rc, out, err = run_prog(pdir, pid, ev["prog"], None, fixture("event", pid, spec), dict(env0, SPLIFY2_EVENT="applied"), ev.get("timeout_s", 10))
+                rc, out, err = run_prog(pdir, pid, ev["prog"], None, fixture("event", pid, spec), dict(env0, SPLIFY2_EVENT="applied"), ev.get("timeout_s", 10), work)
                 check(rc == 0, "события: программа принимает событие и выходит с кодом 0 (код %s)" % rc)
 
         # --- методы
@@ -206,17 +255,37 @@ def main(pdir):
                     and os.access(os.path.join(pdir, mt["override"][name]["prog"]), os.X_OK):
                 nxt = '{"ok":true}'
                 rc, out, err = run_prog(pdir, pid, mt["override"][name]["prog"], name, "{}\n",
-                                        dict(env0, SPLIFY2_NEXT=nxt), mt["override"][name].get("timeout_s", 10))
+                                        dict(env0, SPLIFY2_NEXT=nxt), mt["override"][name].get("timeout_s", 10), work)
                 check(rc == 0 and json_object(out) is not None, "обёртка %s: ответ — объект JSON (код %s)" % (name, rc))
 
         # --- настройки
         st = sp.get("settings", {}).get("schema")
         if st:
+            sch = None
             try:
-                json.load(open(os.path.join(pdir, st), encoding="utf-8")); good = True
+                sch = json.load(open(os.path.join(pdir, st), encoding="utf-8")); good = True
             except Exception:
                 good = False
             check(good, "settings.schema: %s — JSON" % st)
+            if sch is not None:
+                props = sch.get("properties", {})
+                check(isinstance(props, dict), "settings.schema: properties — объект")
+                for k, pr in props.items():
+                    # Умолчание схемы доезжает до программы плагина службой хоста settings get.
+                    r = subprocess.run([os.path.join(HERE, "host"), "settings", "get", k], capture_output=True, text=True,
+                                       env=sandbox_env(pid, pdir, work))
+                    has_default = "default" in pr
+                    check((r.returncode == 0) == has_default,
+                          "настройка %s: службой settings get %s" % (k, "умолчание схемы доезжает" if has_default else "без значения и без умолчания — пусто"))
+                    check(bool(pr.get("title")) and isinstance(pr.get("title"), str), "настройка %s: у схемы есть title" % k)
+
+        # --- граница API: тот же поиск запретного, что у `s2p lint --official`
+        s2p = os.path.join(HERE, "..", "..", "..", "bin", "s2p")
+        if os.access(s2p, os.X_OK):
+            r = subprocess.run([s2p, "lint", "--official", pdir], capture_output=True, text=True)
+            check(r.returncode == 0, "граница API: s2p lint --official%s" % ("" if r.returncode == 0 else ": " + (r.stderr or r.stdout).strip().splitlines()[0]))
+        else:
+            ok("граница API: пропущено — нет bin/s2p (sh build.sh)")
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
