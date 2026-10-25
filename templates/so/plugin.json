@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "id": "example-so",
+  "version": "0.1.0",
+  "name": "Пример: плагин .so",
+  "description": "Вид выхода example-so, код которого работает внутри steerd",
+  "license": "GPL-3.0-or-later",
+  "compat": { "steer-abi": "^1.0" },
+  "arch": ["mipsel_24kc", "mips_24kc", "aarch64_cortex-a53", "aarch64_cortex-a72", "aarch64_generic", "arm_cortex-a7_neon-vfpv4", "arm_cortex-a9", "arm_cortex-a9_neon", "arm_cortex-a9_vfpv3-d16", "x86_64"],
+  "permissions": ["so"],
+  "steer": {
+    "kinds": [
+      { "name": "example-so", "keys": "kinds/example-so.schema.json" }
+    ],
+    "so": { "path": "lib/example-so.so" }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "plugin.name": "Пример: программа-помощник",
+  "plugin.description": "Вид выхода example",
+  "command.example-hello.help": "Поздороваться от плагина",
+  "kind.example.label": "Пример"
+}

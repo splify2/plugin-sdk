@@ -1,0 +1,3 @@
+{
+  "ui": { "dir": ".", "cmd": ["npm", "run", "build"], "out": "ui" }
+}

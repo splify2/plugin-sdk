@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "id": "example-helper",
+  "version": "0.1.0",
+  "name": "Пример: программа-помощник",
+  "description": "Вид выхода example, который ведёт программа под супервизором steer",
+  "license": "MIT",
+  "compat": { "steer-api": "^1.0" },
+  "arch": ["mipsel_24kc", "mips_24kc", "aarch64_cortex-a53", "aarch64_cortex-a72", "aarch64_generic", "arm_cortex-a7_neon-vfpv4", "arm_cortex-a9", "arm_cortex-a9_neon", "arm_cortex-a9_vfpv3-d16", "x86_64"],
+  "steer": {
+    "kinds": [
+      {
+        "name": "example",
+        "keys": "kinds/example.schema.json",
+        "helper": {
+          "prog": "bin/example-helper",
+          "cmd": "example",
+          "argv": ["example", "{out}", "--conf", "{conf}"]
+        },
+        "health": "events"
+      }
+    ],
+    "commands": [
+      { "name": "example-hello", "prog": "bin/example-helper", "help": "поздороваться от плагина" }
+    ]
+  },
+  "i18n": { "languages": ["ru", "en"] }
+}

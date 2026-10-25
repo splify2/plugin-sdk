@@ -1,0 +1,9 @@
+{
+  "plugin.name": "Example: interface",
+  "plugin.description": "A plugin card that calls its own method",
+  "title": "Example",
+  "version": "Version",
+  "ask": "Ask the router",
+  "close": "Close",
+  "summary": "Running"
+}

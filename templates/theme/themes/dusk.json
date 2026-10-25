@@ -1,0 +1,21 @@
+{
+  "name": "Сумерки",
+  "light": {
+    "--sp-background": "#f4f1f7",
+    "--sp-foreground": "#241f2e",
+    "--sp-card": "#ffffff",
+    "--sp-primary": "#6b4fbb",
+    "--sp-primary-foreground": "#ffffff",
+    "--sp-border": "#ddd6e8",
+    "--sp-ring": "#8f78d6"
+  },
+  "dark": {
+    "--sp-background": "#17141f",
+    "--sp-foreground": "#ece8f4",
+    "--sp-card": "#201c2b",
+    "--sp-primary": "#9a82e6",
+    "--sp-primary-foreground": "#17141f",
+    "--sp-border": "#352f45",
+    "--sp-ring": "#9a82e6"
+  }
+}

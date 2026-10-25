@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "id": "example-theme",
+  "version": "0.1.0",
+  "type": "theme",
+  "name": "Пример: тема Сумерки",
+  "description": "Цвета панели, только переменные",
+  "license": "MIT",
+  "compat": { "host-api": "^1.0" },
+  "arch": "all",
+  "themes": [
+    { "id": "dusk", "file": "themes/dusk.json" }
+  ]
+}

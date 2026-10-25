@@ -1,0 +1,7 @@
+{
+  "type": "object",
+  "properties": {
+    "greeting": { "type": "string", "default": "hello", "maxLength": 64 }
+  },
+  "additionalProperties": false
+}

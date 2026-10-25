@@ -1,0 +1,11 @@
+{
+  "cc": [
+    {
+      "kind": "helper",
+      "out": "bin/example-helper",
+      "src": ["src/main.c"],
+      "evline": true,
+      "defs": ["PLUGIN_ID=\"{id}\"", "PLUGIN_VERSION=\"{version}\""]
+    }
+  ]
+}

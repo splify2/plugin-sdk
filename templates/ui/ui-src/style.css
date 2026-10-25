@@ -1,0 +1,6 @@
+/* Панель живёт в shadow root: стили плагина доходят только через ui.css манифеста или host.styles.
+ * Цвета — переменные темы, чтобы светлый и тёмный режим работали сами. */
+.example-ui__answer {
+  margin-top: 0.5rem;
+  color: var(--sp-muted-foreground);
+}

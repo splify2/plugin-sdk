@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "id": "lang-de",
+  "version": "26.11.0",
+  "type": "language",
+  "name": "Deutsch",
+  "description": "Oberfläche der Panel auf Deutsch",
+  "license": "MIT",
+  "compat": { "host-api": "^1.0" },
+  "arch": "all",
+  "i18n": {
+    "host": {
+      "de": { "file": "i18n/host/de.json", "name": "Deutsch", "host": "^26.11" }
+    }
+  }
+}

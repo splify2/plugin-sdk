@@ -1,0 +1,6 @@
+{
+  "plugin.name": "Example: helper program",
+  "plugin.description": "The example output kind",
+  "command.example-hello.help": "Say hello from the plugin",
+  "kind.example.label": "Example"
+}

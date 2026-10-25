@@ -1,0 +1,16 @@
+{
+  "name": "example-ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@splify2/plugin-api": "^1.0.0",
+    "preact": "^10.29.7",
+    "typescript": "~6.0.2",
+    "vite": "^7.0.0"
+  }
+}

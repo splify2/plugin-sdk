@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "id": "example-ui",
+  "version": "0.1.0",
+  "name": "Пример: интерфейс",
+  "description": "Карточка плагина во вкладке «Плагины» с вызовом своего метода",
+  "license": "MIT",
+  "compat": { "host-api": "^1.0" },
+  "arch": "all",
+  "rpc": {
+    "prog": "rpc/hello",
+    "methods": {
+      "hello": { "access": "read" }
+    }
+  },
+  "ui": {
+    "entry": "ui/index.js",
+    "css": ["ui/style.css"]
+  },
+  "i18n": { "languages": ["ru", "en"] }
+}

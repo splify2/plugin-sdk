@@ -1,0 +1,10 @@
+{
+  "cc": [
+    {
+      "kind": "so",
+      "out": "lib/example-so.so",
+      "src": ["src/example.c"],
+      "defs": ["PLUGIN_ID=\"{id}\"", "PLUGIN_VERSION=\"{version}\""]
+    }
+  ]
+}

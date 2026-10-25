@@ -1,0 +1,8 @@
+#!/bin/sh
+# Метод плагина для splify2: $1 — имя метода, параметры — JSON в stdin, ответ — JSON в stdout, код 0.
+# Код не 0 — отказ: панель покажет последнюю строку stderr.
+cat >/dev/null
+case "$1" in
+hello) printf '{"ok":true,"message":"Привет от example-ui"}\n' ;;
+*) echo "нет такого метода" >&2; exit 2 ;;
+esac

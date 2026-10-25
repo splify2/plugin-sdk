@@ -1,0 +1,8 @@
+{
+  "type": "object",
+  "properties": {
+    "greeting": { "type": "string", "default": "hello", "maxLength": 64 },
+    "token": { "type": "string", "x-secret": true }
+  },
+  "additionalProperties": false
+}
