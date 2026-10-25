@@ -1,0 +1,92 @@
+{
+  "schema": 1,
+  "id": "recheck",
+  "version": "1.0.0",
+  "name": "ReCheck",
+  "description": "Обход блокировок DPI на трафике, который идёт напрямую",
+  "license": "LicenseRef-proprietary",
+  "compat": {
+    "steer-api": "^1.0",
+    "host-api": "^1.0"
+  },
+  "arch": [
+    "aarch64_cortex-a53",
+    "x86_64"
+  ],
+  "requires": {
+    "system": [
+      "kmod-nfnetlink-queue",
+      "kmod-nft-queue",
+      "kmod-nf-conntrack-netlink",
+      "ca-bundle"
+    ],
+    "kernel": [
+      "/proc/net/netfilter/nfnetlink_queue"
+    ]
+  },
+  "permissions": [
+    "net.admin",
+    "nft",
+    "http",
+    "fs:/etc/recheck"
+  ],
+  "resources": {
+    "queues": 2,
+    "mark_bits": 3
+  },
+  "steer": {
+    "services": [
+      {
+        "name": "recheck",
+        "prog": "bin/steer-dpi-live",
+        "argv": [
+          "--queue",
+          "{queue0}",
+          "--watch-queue",
+          "{queue1}",
+          "--mark",
+          "{mark}",
+          "--conf",
+          "{plugin_conf}"
+        ]
+      }
+    ],
+    "nft": [
+      "nft/recheck.nft"
+    ]
+  },
+  "rpc": {
+    "prog": "rpc/recheck",
+    "methods": {
+      "status": {
+        "access": "read"
+      },
+      "set": {
+        "access": "write"
+      },
+      "forget": {
+        "access": "write"
+      }
+    }
+  },
+  "ui": {
+    "entry": "ui/index.js",
+    "css": [
+      "ui/style.css"
+    ]
+  },
+  "i18n": {
+    "languages": [
+      "ru",
+      "en"
+    ]
+  },
+  "keep": [
+    "/etc/recheck"
+  ],
+  "scripts": {
+    "postinst": "scripts/postinst",
+    "prerm": "scripts/prerm",
+    "migrate": "scripts/migrate"
+  }
+}

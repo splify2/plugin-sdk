@@ -1,0 +1,131 @@
+{
+  "schema": 1,
+  "id": "vless",
+  "version": "2.1.0",
+  "type": "plugin",
+  "name": "VLESS",
+  "description": "Туннели VLESS и Reality",
+  "license": "GPL-3.0-only",
+  "homepage": "https://github.com/splify2/steer",
+  "compat": {
+    "steer-api": "^1.0",
+    "host-api": "^1.0"
+  },
+  "arch": [
+    "aarch64_cortex-a53",
+    "x86_64"
+  ],
+  "requires": {
+    "system": [
+      "kmod-tun"
+    ],
+    "kernel": [
+      "/dev/net/tun"
+    ],
+    "plugins": {
+      "net1": "^1.2"
+    }
+  },
+  "permissions": [
+    "net.admin",
+    "http",
+    "ctl"
+  ],
+  "steer": {
+    "kinds": [
+      {
+        "name": "tunnel:vless",
+        "keys": "kinds/vless.schema.json",
+        "caps": [
+          "device",
+          "mark",
+          "ctmark",
+          "engine-owned",
+          "self-nat",
+          "over",
+          "tcp-probe",
+          "flow-udp",
+          "tcp-redir",
+          "ipv6"
+        ],
+        "helper": {
+          "prog": "bin/vless",
+          "cmd": "vless",
+          "argv": [
+            "vless",
+            "{out}",
+            "--conf",
+            "{conf}"
+          ]
+        },
+        "check": {
+          "prog": "bin/vless",
+          "argv": [
+            "vless-check"
+          ],
+          "timeout_s": 10
+        },
+        "health": "events",
+        "resources": {
+          "ports": 1
+        }
+      }
+    ],
+    "commands": [
+      {
+        "name": "vless-nodes",
+        "prog": "bin/vless",
+        "help": "узлы подписки выхода",
+        "ctl": {
+          "timeout_s": 15,
+          "args": [
+            "name"
+          ]
+        }
+      },
+      {
+        "name": "vless-probe",
+        "prog": "bin/vless",
+        "help": "проверить узлы выхода",
+        "ctl": {
+          "timeout_s": 180,
+          "args": [
+            "name",
+            "int",
+            "int"
+          ],
+          "optional": 2
+        }
+      },
+      {
+        "name": "sub-fetch",
+        "prog": "bin/vless",
+        "help": "скачать подписку"
+      },
+      {
+        "name": "sub-quota",
+        "prog": "bin/vless",
+        "help": "остаток трафика подписки"
+      },
+      {
+        "name": "tls-probe",
+        "prog": "bin/vless",
+        "help": "проверить TLS узла"
+      }
+    ]
+  },
+  "ui": {
+    "entry": "ui/index.js"
+  },
+  "i18n": {
+    "dir": "i18n",
+    "languages": [
+      "ru",
+      "en"
+    ]
+  },
+  "keep": [],
+  "health": {
+    "timeout_s": 60
+  }
+}

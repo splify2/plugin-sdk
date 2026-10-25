@@ -1,0 +1,16 @@
+# Файл nft плагина recheck: наборы и цепочки-слоты (docs/steer-api.md, «nft»).
+# Имена наборов получают приставку p_recheck_, цепочки слотов — plugin_recheck_<слот>;
+# ядро ставит их в свою таблицу одной транзакцией с набором правил steer.
+set private4 {
+  type ipv4_addr; flags interval
+  elements = { 0.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 198.18.0.0/15, 224.0.0.0/3 }
+}
+chain postrouting-post {
+  meta mark & {mark} == {mark} return
+  meta mark & {steer_mask} != 0 return
+  iifname @lan_dev oifname @wan_dev ip daddr != @private4 meta l4proto { tcp, udp } ct direction original ct original packets <= 12 counter queue flags bypass to {queue0}
+}
+chain forward {
+  meta mark & {steer_mask} != 0 return
+  iifname @wan_dev oifname @lan_dev ip saddr != @private4 meta l4proto { tcp, udp } ct direction reply ct reply packets <= 8 counter queue flags bypass to {queue0}
+}

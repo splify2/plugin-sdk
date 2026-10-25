@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "id": "lang-en",
+  "version": "26.11.0",
+  "type": "language",
+  "name": "English",
+  "compat": { "host-api": "^1.0" },
+  "arch": "all",
+  "i18n": { "host": { "en": { "file": "i18n/host/en.json", "name": "English", "host": "^26.11" } } }
+}

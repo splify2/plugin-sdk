@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://splify2.github.io/plugin-sdk/schema/kind-keys.schema.json",
+  "title": "Схема ключей вида плагина (kinds/<вид>.schema.json): разрешённое подмножество JSON Schema",
+  "description": "Ядро проверяет ключи выхода вида плагина этим подмножеством без сторонней библиотеки. Ключевые слова вне списка — отказ установки (s2p lint ловит раньше). Описание — docs/manifest.md, «Ключи вида».",
+  "$ref": "#/$defs/node",
+  "$defs": {
+    "node": {
+      "type": "object",
+      "properties": {
+        "$schema": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "type": {
+          "oneOf": [
+            { "$ref": "#/$defs/type" },
+            { "type": "array", "items": { "$ref": "#/$defs/type" }, "minItems": 1, "uniqueItems": true }
+          ]
+        },
+        "enum": { "type": "array", "minItems": 1 },
+        "const": {},
+        "default": {},
+        "pattern": { "type": "string" },
+        "minLength": { "type": "integer", "minimum": 0 },
+        "maxLength": { "type": "integer", "minimum": 0 },
+        "minimum": { "type": "number" },
+        "maximum": { "type": "number" },
+        "minItems": { "type": "integer", "minimum": 0 },
+        "maxItems": { "type": "integer", "minimum": 0 },
+        "uniqueItems": { "type": "boolean" },
+        "items": { "$ref": "#/$defs/node" },
+        "properties": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/node" }
+        },
+        "required": { "type": "array", "items": { "type": "string" } },
+        "additionalProperties": { "type": "boolean" },
+        "x-secret": {
+          "type": "boolean",
+          "description": "Значение не печатается в status/diag/журнале и в explain."
+        },
+        "x-path": {
+          "enum": ["etc", "conf", "abs"],
+          "description": "Строка — путь к файлу: etc — относительно каталога спеки, conf — относительно conf/<id>, abs — только абсолютный."
+        }
+      },
+      "additionalProperties": false
+    },
+    "type": { "enum": ["string", "integer", "number", "boolean", "array", "object", "null"] }
+  }
+}

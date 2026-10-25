@@ -1,0 +1,22 @@
+{
+  "name": "@splify2/plugin-api",
+  "version": "1.0.0",
+  "description": "Типы host API панели splify2 для UI плагинов (только типы, без реализации)",
+  "license": "MIT",
+  "type": "module",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": { "types": "./src/index.d.ts" }
+  },
+  "files": ["src"],
+  "peerDependencies": {
+    "preact": "^10.29.0"
+  },
+  "devDependencies": {
+    "preact": "^10.29.7",
+    "typescript": "~6.0.2"
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json --noEmit"
+  }
+}

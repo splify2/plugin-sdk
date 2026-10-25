@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "repo": { "id": "splify2", "name": "splify2", "homepage": "https://github.com/splify2/plugins" },
+  "generated": "2026-11-02T10:00:00Z",
+  "expires": "2026-12-02T00:00:00Z",
+  "mirrors": [
+    "https://splify2.github.io/plugins/",
+    "https://cdn.jsdelivr.net/gh/splify2/plugins@gh-pages/"
+  ],
+  "plugins": {
+    "vless": {
+      "name": "VLESS",
+      "description": "Туннели VLESS и Reality",
+      "type": "plugin",
+      "tags": ["protocol"],
+      "default": true,
+      "key_role": "protocols",
+      "versions": [
+        {
+          "version": "2.1.1",
+          "released": "2026-11-20T12:00:00Z",
+          "compat": { "steer-api": "^1.1", "host-api": "^1.0" },
+          "requires": { "system": ["kmod-tun"] },
+          "provides": { "kinds": ["tunnel:vless"], "commands": ["vless-nodes", "vless-probe", "sub-fetch", "sub-quota", "tls-probe"] },
+          "assets": {
+            "aarch64_cortex-a53": { "path": "vless/2.1.1/vless-2.1.1-aarch64_cortex-a53.s2p", "sha256": "0000000000000000000000000000000000000000000000000000000000000000", "size": 412311, "installed": 1048576 },
+            "x86_64": { "path": "vless/2.1.1/vless-2.1.1-x86_64.s2p", "sha256": "0000000000000000000000000000000000000000000000000000000000000000", "size": 430112, "installed": 1101004 }
+          }
+        },
+        {
+          "version": "2.1.0",
+          "compat": { "steer-api": "^1.0", "host-api": "^1.0" },
+          "requires": { "system": ["kmod-tun"] },
+          "provides": { "kinds": ["tunnel:vless"] },
+          "yanked": { "why": "узлы xhttp не поднимались", "security": false },
+          "assets": {
+            "x86_64": { "path": "vless/2.1.0/vless-2.1.0-x86_64.s2p", "sha256": "0000000000000000000000000000000000000000000000000000000000000000", "size": 429001, "installed": 1099000 }
+          }
+        }
+      ]
+    },
+    "lang-en": {
+      "name": "English",
+      "type": "language",
+      "key_role": "plugins",
+      "versions": [
+        {
+          "version": "26.11.0",
+          "compat": { "host-api": "^1.0" },
+          "provides": { "languages": ["en"] },
+          "assets": { "all": { "path": "lang-en/26.11.0/lang-en-26.11.0-all.s2p", "sha256": "0000000000000000000000000000000000000000000000000000000000000000", "size": 30211, "installed": 120034 } }
+        }
+      ]
+    }
+  }
+}

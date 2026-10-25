@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "id": "awg",
+  "version": "2.1.0",
+  "name": "AmneziaWG",
+  "description": "Туннели WireGuard и AmneziaWG",
+  "license": "GPL-3.0-only",
+  "compat": { "steer-api": "^1.0", "host-api": "^1.0" },
+  "arch": "all",
+  "requires": { "system": ["kmod-amneziawg|kmod-wireguard"], "kernel": ["/sys/module/wireguard|/sys/module/amneziawg"] },
+  "steer": { "kinds": [ { "name": "awg", "impl": "core" } ] },
+  "ui": { "entry": "ui/index.js" },
+  "i18n": { "languages": ["ru", "en"] },
+  "keep": []
+}

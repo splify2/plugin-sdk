@@ -1,0 +1,751 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://splify2.github.io/plugin-sdk/schema/plugin.schema.json",
+  "title": "Манифест плагина splify2/steer (plugin.json), schema 1",
+  "description": "Описание полей — docs/manifest.md. Поля, которых менеджер не знает, он пропускает; неизвестную schema отвергает.",
+  "type": "object",
+  "required": [
+    "schema",
+    "id",
+    "version",
+    "name",
+    "compat",
+    "arch"
+  ],
+  "properties": {
+    "schema": {
+      "const": 1
+    },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "version": {
+      "$ref": "#/$defs/semver"
+    },
+    "type": {
+      "enum": [
+        "plugin",
+        "library",
+        "language",
+        "theme"
+      ],
+      "default": "plugin",
+      "description": "Подсказка каталогу. library — только lib/ для других плагинов; language — переводы хоста; theme — только темы."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "license": {
+      "type": "string",
+      "description": "SPDX-выражение"
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri"
+    },
+    "authors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "compat": {
+      "$ref": "#/$defs/compat"
+    },
+    "arch": {
+      "oneOf": [
+        {
+          "const": "all"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/arch"
+          }
+        }
+      ]
+    },
+    "requires": {
+      "$ref": "#/$defs/requires"
+    },
+    "conflicts": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      },
+      "description": "Плагины, с которыми этот не ставится рядом; отказ называет стоящий."
+    },
+    "permissions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/permission"
+      }
+    },
+    "resources": {
+      "$ref": "#/$defs/resources"
+    },
+    "steer": {
+      "$ref": "#/$defs/steer"
+    },
+    "rpc": {
+      "$ref": "#/$defs/rpc"
+    },
+    "ui": {
+      "$ref": "#/$defs/ui"
+    },
+    "i18n": {
+      "$ref": "#/$defs/i18n"
+    },
+    "themes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "file"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "#/$defs/id"
+          },
+          "file": {
+            "$ref": "#/$defs/relpath"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "keep": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/abspath"
+      },
+      "description": "Что переживает sysupgrade и снятие без --purge, кроме /etc/steer/plugins/conf/<id>/ (он сохраняется всегда). Каждый путь должен быть разрешён правом fs:<путь>."
+    },
+    "scripts": {
+      "type": "object",
+      "properties": {
+        "postinst": {
+          "$ref": "#/$defs/relpath"
+        },
+        "prerm": {
+          "$ref": "#/$defs/relpath"
+        },
+        "migrate": {
+          "$ref": "#/$defs/relpath"
+        }
+      },
+      "additionalProperties": true
+    },
+    "health": {
+      "type": "object",
+      "properties": {
+        "timeout_s": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 60
+        }
+      },
+      "additionalProperties": true
+    },
+    "libs": {
+      "type": "array",
+      "description": "Только у type: library — общие библиотеки для других плагинов (wolfSSL, стек туннелей): одна копия на роутер, а не копия в каждом плагине. docs/manifest.md, «libs».",
+      "items": {
+        "type": "object",
+        "required": [
+          "soname",
+          "file"
+        ],
+        "properties": {
+          "soname": {
+            "type": "string",
+            "pattern": "^lib[A-Za-z0-9_+-]+\\.so\\.[0-9]+$",
+            "description": "SONAME с major ABI библиотеки: libs2p-wolfssl.so.1"
+          },
+          "file": {
+            "$ref": "#/$defs/relpath"
+          },
+          "abi": {
+            "type": "string",
+            "pattern": "^[0-9]+\\.[0-9]+$",
+            "description": "major.minor ABI библиотеки; major совпадает с номером в soname"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "description": "Короткое имя: каталог /usr/lib/steer/plugins/<id>, объект ubus splify2.p.<id>, цепочки nft plugin_<id>_*."
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\\+[0-9A-Za-z.-]+)?$"
+    },
+    "range": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Диапазон semver в синтаксисе npm: =, ^, ~, >=, >, <=, <, пробел — «и», || — «или»."
+    },
+    "arch": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+(-[a-z0-9_]+)*$",
+      "description": "Пакетная архитектура OpenWrt (steer/build/arches.sh:7-18), например aarch64_cortex-a53."
+    },
+    "relpath": {
+      "type": "string",
+      "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))[^\\x00]+$",
+      "description": "Путь внутри каталога плагина: без / в начале и без .."
+    },
+    "abspath": {
+      "type": "string",
+      "pattern": "^/(?!.*(^|/)\\.\\.(/|$))[^\\x00]*$"
+    },
+    "compat": {
+      "type": "object",
+      "minProperties": 1,
+      "properties": {
+        "steer-api": {
+          "$ref": "#/$defs/range"
+        },
+        "steer-abi": {
+          "$ref": "#/$defs/range"
+        },
+        "host-api": {
+          "$ref": "#/$defs/range"
+        },
+        "splify2": {
+          "$ref": "#/$defs/range"
+        },
+        "steer-core": {
+          "type": "string",
+          "pattern": "^>=\\s*(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+          "description": "Только нижняя граница (>=X.Y.Z): тег «=версия ядра» снят (В10)."
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/range"
+      }
+    },
+    "requires": {
+      "type": "object",
+      "properties": {
+        "plugins": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/id"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/range"
+          }
+        },
+        "system": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9+._-]*(\\|[A-Za-z0-9][A-Za-z0-9+._-]*)*$",
+            "description": "Пакет фида OpenWrt; «a|b» — любой из. Первый в списке ставится, если не стоит ни один."
+          }
+        },
+        "kernel": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/abspath"
+          },
+          "description": "Пути, которые должны существовать после установки системных пакетов."
+        }
+      },
+      "additionalProperties": true
+    },
+    "permission": {
+      "type": "string",
+      "pattern": "^(net\\.admin|nft|spec\\.transform|so|http|system-packages|ctl|fs:/.*)$"
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "mark_bits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queues": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ports": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tables": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "argv": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Слова после имени программы, с подстановками {…} (docs/steer-api.md, «Подстановки»)."
+    },
+    "env": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Z][A-Z0-9_]*$"
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "prog": {
+      "type": "object",
+      "required": [
+        "prog"
+      ],
+      "properties": {
+        "prog": {
+          "$ref": "#/$defs/relpath"
+        },
+        "argv": {
+          "$ref": "#/$defs/argv"
+        },
+        "env": {
+          "$ref": "#/$defs/env"
+        },
+        "timeout_s": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "ctlarg": {
+      "enum": [
+        "name",
+        "int",
+        "target",
+        "file",
+        "word"
+      ]
+    },
+    "command": {
+      "type": "object",
+      "required": [
+        "name",
+        "prog"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "prog": {
+          "$ref": "#/$defs/relpath"
+        },
+        "argv": {
+          "$ref": "#/$defs/argv"
+        },
+        "help": {
+          "type": "string"
+        },
+        "usage": {
+          "type": "string"
+        },
+        "ctl": {
+          "type": "object",
+          "properties": {
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "args": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ctlarg"
+              }
+            },
+            "optional": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "body": {
+              "enum": [
+                "none",
+                "spec",
+                "file"
+              ],
+              "default": "none"
+            },
+            "lock": {
+              "type": "boolean",
+              "default": false
+            },
+            "spec": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "slot": {
+      "enum": [
+        "prerouting-raw",
+        "prerouting-pre",
+        "prerouting-post",
+        "prerouting-dnat",
+        "forward",
+        "input",
+        "output-pre",
+        "output-post",
+        "postrouting-pre",
+        "postrouting-post"
+      ],
+      "description": "Имя слота в файле nft плагина: chain <слот> { … }. Таблица слотов — docs/steer-api.md, «nft»."
+    },
+    "cap": {
+      "enum": [
+        "device",
+        "mark",
+        "ctmark",
+        "engine-owned",
+        "self-nat",
+        "over",
+        "tcp-probe",
+        "flow-udp",
+        "ipv6",
+        "tcp-redir"
+      ]
+    },
+    "kind": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*(:[a-z0-9][a-z0-9-]*)?$",
+          "description": "Имя вида в спеке; «tunnel:<протокол>» — протокол вида tunnel (kind: tunnel, protocol: <протокол>)."
+        },
+        "impl": {
+          "enum": [
+            "plugin",
+            "core"
+          ],
+          "default": "plugin",
+          "description": "core — код вида в ядре, плагин даёт допуск, зависимости и UI (awg в 2.1, В2). Только официальный репозиторий."
+        },
+        "keys": {
+          "$ref": "#/$defs/relpath"
+        },
+        "caps": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/cap"
+          }
+        },
+        "helper": {
+          "allOf": [
+            {
+              "$ref": "#/$defs/prog"
+            },
+            {
+              "properties": {
+                "cmd": {
+                  "$ref": "#/$defs/name"
+                },
+                "per": {
+                  "enum": [
+                    "output"
+                  ],
+                  "default": "output"
+                }
+              }
+            }
+          ]
+        },
+        "check": {
+          "$ref": "#/$defs/prog"
+        },
+        "expand": {
+          "$ref": "#/$defs/prog"
+        },
+        "health": {
+          "enum": [
+            "events",
+            "probe",
+            "icmp",
+            "tcp"
+          ],
+          "default": "events"
+        },
+        "nft": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relpath"
+          },
+          "description": "Шаблоны nft на каждый выход вида: подстановки {out}, {mark}, {port}… (docs/steer-api.md)."
+        },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "ports": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "queues": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": true
+        },
+        "texts": {
+          "type": "object",
+          "properties": {
+            "lan_only": {
+              "type": "string"
+            },
+            "novia": {
+              "type": "string"
+            },
+            "selfnat_why": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "service": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/prog"
+        },
+        {
+          "type": "object",
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/name"
+            }
+          }
+        }
+      ]
+    },
+    "steer": {
+      "type": "object",
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/command"
+          }
+        },
+        "kinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/kind"
+          }
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/service"
+          }
+        },
+        "hooks": {
+          "type": "object",
+          "properties": {
+            "pre_apply": {
+              "$ref": "#/$defs/prog"
+            },
+            "event": {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/prog"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "events"
+                  ],
+                  "properties": {
+                    "events": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "additionalProperties": true
+        },
+        "nft": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relpath"
+          },
+          "description": "Файлы nft плагина (docs/steer-api.md, «nft»): наборы и цепочки-слоты; ставятся атомарно с набором правил steer."
+        },
+        "so": {
+          "type": "object",
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "$ref": "#/$defs/relpath"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "rpc": {
+      "type": "object",
+      "required": [
+        "prog",
+        "methods"
+      ],
+      "properties": {
+        "prog": {
+          "$ref": "#/$defs/relpath"
+        },
+        "methods": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "access"
+            ],
+            "properties": {
+              "access": {
+                "enum": [
+                  "read",
+                  "write"
+                ]
+              },
+              "timeout_s": {
+                "type": "integer",
+                "minimum": 1,
+                "default": 30
+              },
+              "job": {
+                "type": "boolean",
+                "default": false
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "ui": {
+      "type": "object",
+      "required": [
+        "entry"
+      ],
+      "properties": {
+        "entry": {
+          "$ref": "#/$defs/relpath"
+        },
+        "css": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relpath"
+          }
+        },
+        "desktop": {
+          "type": "boolean",
+          "default": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "i18n": {
+      "type": "object",
+      "properties": {
+        "dir": {
+          "$ref": "#/$defs/relpath",
+          "default": "i18n"
+        },
+        "languages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/lang"
+          }
+        },
+        "host": {
+          "type": "object",
+          "description": "Только у type: language — словари строк хоста по языкам.",
+          "propertyNames": {
+            "$ref": "#/$defs/lang"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "file",
+              "name"
+            ],
+            "properties": {
+              "file": {
+                "$ref": "#/$defs/relpath"
+              },
+              "name": {
+                "type": "string"
+              },
+              "host": {
+                "$ref": "#/$defs/range",
+                "description": "Каким версиям словаря хоста соответствует."
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "lang": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?$"
+    }
+  }
+}
