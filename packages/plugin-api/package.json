@@ -1,0 +1,67 @@
+{
+  "name": "@splify2/plugin-api",
+  "version": "1.0.0",
+  "description": "host API панели splify2 для UI плагинов: типы, константа версии и сборка на vite с общим preact",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "default": "./dist/vite.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "splify2",
+    "steer",
+    "plugin",
+    "openwrt",
+    "preact"
+  ],
+  "homepage": "https://github.com/splify2/plugin-sdk/tree/main/packages/plugin-api",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/splify2/plugin-sdk.git",
+    "directory": "packages/plugin-api"
+  },
+  "bugs": "https://github.com/splify2/plugin-sdk/issues",
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "preact": "^10.29.0",
+    "vite": ">=5"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "preact": "^10.29.7",
+    "typescript": "~6.0.2",
+    "vite": "^7.0.0"
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json",
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/test.mjs",
+    "prepack": "npm run build"
+  }
+}
