@@ -8,6 +8,8 @@
     host spec get [--applied] [ФАЙЛ] | uses ПУТЬ | check ФАЙЛ    host apply    host engine
     host settings get КЛЮЧ | set КЛЮЧ ЗНАЧЕНИЕ
     host state check|export|import КАТАЛОГ    host hook backup_sections --ctx ФАЙЛ [--plugin ID]
+    host release versions steer|splify2    host release fetch ПРОДУКТ ВЕРСИЯ ИМЯ ФАЙЛ    host pkg info|install …
+    host engine modules [--want a,b] | settle [модуль…]
     host call МЕТОД < запрос    host probe geo|ident ВЫХОД
     host sub list | info ИМЯ | refresh ИМЯ    host sub quota ИМЯ    host sub title ИМЯ [НАЗВАНИЕ]
 """
@@ -270,6 +272,51 @@ def cmd_sub(a):
     out({"ok": True, "name": name, "title": title})
 
 
+def cmd_release(a):
+    if len(a) >= 2 and a[0] == "versions" and a[1] in ("steer", "splify2"):
+        d = {"ok": True, "versions": ["2.1.1", "2.1.0"], "names": {"2.1.1": "2.1.1", "2.1.0": "2.1.0"}}
+        d["arch" if a[1] == "steer" else "current"] = "aarch64_stub" if a[1] == "steer" else "26.10.4"
+        out(d)
+    if len(a) >= 5 and a[0] == "fetch":
+        if a[1] not in ("steer", "splify2") or not re.match(r"^[0-9.]+$", a[2]) or not re.match(r"^[A-Za-z0-9._+-]+$", a[3]):
+            fail("недопустимые аргументы")
+        os.makedirs(os.path.dirname(a[4]) or ".", exist_ok=True)
+        open(a[4], "w").write("stub package\n")
+        out({"ok": True})
+    usage()
+
+
+def cmd_pkg(a):
+    if a and a[0] == "info":
+        out({"ok": True, "manager": "apk", "ext": "apk", "noarch": "noarch.apk", "arch": "aarch64_stub", "steer_min": "2.1.0",
+             "versions": {"steer-core": "2.1.0", "splify2": "26.10.4", "luci-app-splify2": ""}})
+    if a and a[0] == "install" and len(a) > 1:
+        files = []
+        for x in a[1:]:
+            if x.startswith("--"):
+                break
+            files.append(x)
+        for f in files:
+            if not (f.startswith("/tmp/") or f.startswith(os.environ.get("STEER_PLUGIN_STATE", "/nonexistent") + "/")):
+                fail("пакет можно ставить только из /tmp или из рабочего каталога плагина")
+            if not os.path.exists(f):
+                fail("нет файла %s" % f)
+        out({"ok": True, "output": "installed (stub)", "removed": False})
+    usage()
+
+
+def cmd_engine_ext(a):
+    if a and a[0] == "modules":
+        want = a[2].split(",") if len(a) > 2 and a[1] == "--want" else []
+        for w in want:
+            if w not in ("vless", "hysteria2", "proxy", "xsteer", "obfs", "tgws"):
+                fail("неизвестный модуль: %s" % w)
+        out({"ok": True, "modules": want})
+    if a and a[0] == "settle":
+        out({"ok": True, "restarted": False})
+    return cmd_engine(a)
+
+
 CALLS = ("vless_nodes", "hysteria2_nodes", "proxy_nodes", "vless_probe", "hysteria2_probe", "proxy_probe", "outbound_probe")
 
 
@@ -297,7 +344,7 @@ def cmd_probe(a):
 
 
 CMDS = {"fetch": cmd_fetch, "fetch-mode": cmd_fetch_mode, "paths": cmd_paths, "spec": cmd_spec, "apply": cmd_apply,
-        "engine": cmd_engine, "settings": cmd_settings, "state": cmd_state, "hook": cmd_hook, "sub": cmd_sub, "call": cmd_call, "probe": cmd_probe}
+        "engine": cmd_engine_ext, "settings": cmd_settings, "state": cmd_state, "hook": cmd_hook, "sub": cmd_sub, "call": cmd_call, "probe": cmd_probe, "release": cmd_release, "pkg": cmd_pkg}
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in CMDS:
