@@ -46,4 +46,6 @@ const (
 	sdkSteerAPI = "1.0.0"
 	sdkSteerABI = "1.0.0"
 	sdkHostAPI  = "1.0.0"
+	// splify2-api: хуки, задачи, события, псевдонимы и переопределения методов бэкенда splify2.
+	sdkSplify2API = "1.0.0"
 )

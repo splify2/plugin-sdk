@@ -1,0 +1,8 @@
+#!/bin/sh
+# Метод плагина ($1) и обёртка метода каркаса ui_get: ответ каркаса — в SPLIFY2_NEXT.
+cat >/dev/null
+case "$1" in
+    hello)  printf '{"ok":true,"message":"привет"}\n' ;;
+    ui_get) if [ -n "${SPLIFY2_NEXT:-}" ]; then printf '%s\n' "$SPLIFY2_NEXT"; else echo '{"ok":true}'; fi ;;
+    *) echo "нет такого метода" >&2; exit 2 ;;
+esac

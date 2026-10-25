@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "id": "example-hooks",
+  "version": "0.1.0",
+  "name": "Пример: хуки каркаса",
+  "description": "Хуки, задача, события и свой метод на объекте splify2",
+  "license": "MIT",
+  "compat": { "splify2-api": "^1.0" },
+  "arch": "all",
+  "permissions": ["splify2.hooks", "splify2.override"],
+  "rpc": {
+    "prog": "rpc/example",
+    "methods": {
+      "hello": { "access": "read" },
+      "ui_get": { "access": "read" }
+    }
+  },
+  "splify2": {
+    "priority": 100,
+    "hooks": {
+      "pre_apply": { "prog": "hooks/hook", "mode": "veto" },
+      "post_apply": { "prog": "hooks/hook" },
+      "heal": { "prog": "hooks/hook", "mode": "transform" },
+      "backup_sections": { "prog": "hooks/hook" },
+      "support_report": { "prog": "hooks/hook" },
+      "purge": { "prog": "hooks/hook" }
+    },
+    "tasks": [
+      { "name": "tick", "every": "10m", "prog": "bin/task", "only_if": "spec-present" }
+    ],
+    "events": { "subscribe": ["applied", "failed"], "prog": "hooks/event" },
+    "methods": {
+      "alias": { "example_hello": "hello" },
+      "override": { "ui_get": { "prog": "rpc/example", "mode": "wrap" } }
+    },
+    "settings": { "schema": "settings.schema.json" }
+  }
+}

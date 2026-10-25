@@ -179,6 +179,58 @@ for f in craft/path-*; do
     refuse "lint тоже отказывает: $(basename "$f")" '.' "$S" lint "$f"
 done
 
+section "совместимость с splify2-api (заглушка хоста)"
+C="$ROOT/tests/compat/run.sh"
+check "образец splify2-hooks подключается к splify2-api 1.0" sh "$C" "$ROOT/examples/splify2-hooks" 1.0
+check "образец собирается в .s2p" "$S" build "$ROOT/examples/splify2-hooks" --unsigned -o s2out
+check "официальные плагины каркаса (если рядом) подключаются" sh -c "
+  for d in '$ROOT'/../splify2/plugins/*/ ${S2_FRAME_PLUGINS:-}; do [ -f \"\$d/plugin.json\" ] || continue; sh '$C' \"\$d\" 1.0 >/dev/null || exit 1; done"
+mutate_h() {  # ИМЯ ПРАВКА-python — копия образца splify2-hooks с правкой plugin.json
+    rm -rf "h-$1"; cp -r "$ROOT/examples/splify2-hooks" "h-$1"; python3 - "h-$1/plugin.json" "$2" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1])); exec(sys.argv[2]); json.dump(p, open(sys.argv[1], 'w'), ensure_ascii=False, indent=2)
+PY
+}
+mutate_h perm "p['permissions'] = []"
+refuse "compat: хуки без права splify2.hooks" 'splify2.hooks' sh "$C" h-perm
+refuse "lint: хуки без права splify2.hooks" 'splify2.hooks' "$S" lint h-perm
+mutate_h final "p['splify2']['methods']['alias']['plugin_install'] = 'hello'"
+refuse "compat: псевдоним на final-метод" 'plugin_install.*занято' sh "$C" h-final
+refuse "lint: псевдоним на final-метод" 'final' "$S" lint h-final
+mutate_h live "p['splify2']['methods']['alias']['live'] = 'hello'"
+refuse "compat: псевдоним на метод быстрого пути" 'live.*занято' sh "$C" h-live
+refuse "lint: псевдоним на метод быстрого пути" 'live' "$S" lint h-live
+mutate_h frame "p['splify2']['methods']['alias']['status'] = 'hello'"
+refuse "compat: псевдоним на метод каркаса" 'status.*занято' sh "$C" h-frame
+mutate_h moved "p['splify2']['methods']['alias']['backup_get'] = 'hello'"
+refuse "compat: чужому плагину имя вынесенного метода не отдают" 'backup_get.*backup' sh "$C" h-moved
+mutate_h over "p['splify2']['methods']['override']['plugin_status'] = {'prog': 'rpc/example', 'mode': 'replace'}"
+refuse "compat: переопределение final-метода" 'plugin_status' sh "$C" h-over
+refuse "lint: переопределение final-метода" 'final' "$S" lint h-over
+mutate_h api "p['compat']['splify2-api'] = '^2.0'"
+refuse "compat: другой major splify2-api" 'splify2-api' sh "$C" h-api
+mutate_h noaxis "del p['compat']['splify2-api']; p['compat']['host-api'] = '^1.0'"
+refuse "lint: блок splify2 без оси splify2-api" 'splify2-api' "$S" lint h-noaxis
+mutate_h alias "p['splify2']['methods']['alias']['example_hello'] = 'no_such'"
+refuse "lint: псевдоним на несуществующий rpc-метод" 'rpc' "$S" lint h-alias
+mutate_h tf "p['splify2']['hooks']['pre_apply']['mode'] = 'transform'"
+refuse "lint: transform у pre_apply" 'transform' "$S" lint h-tf
+mutate_h hk "p['splify2']['hooks']['bogus'] = {'prog': 'hooks/hook'}"
+refuse "lint: неизвестный хук" 'bogus|hooks' "$S" lint h-hk
+mutate_h task "p['splify2']['tasks'][0]['every'] = 'soon'"
+refuse "lint: задача с непонятным every" 'every' "$S" lint h-task
+mutate_h cron "del p['splify2']['tasks'][0]['every']; p['splify2']['tasks'][0]['cron'] = '1 M * * *'"
+refuse "lint: M не в поле минут" 'cron|M' "$S" lint h-cron
+rm -rf h-crash; cp -r "$ROOT/examples/splify2-hooks" h-crash
+printf '#!/bin/sh\ncat >/dev/null\nexit 3\n' > h-crash/hooks/hook; chmod +x h-crash/hooks/hook
+refuse "compat: упавший хук" 'FAIL.*хук' sh "$C" h-crash
+printf '#!/bin/sh\ncat >/dev/null\necho "это не JSON"\n' > h-crash/hooks/hook
+refuse "compat: хук ответил не объектом JSON" 'FAIL.*хук' sh "$C" h-crash
+rm -rf h-noexec; cp -r "$ROOT/examples/splify2-hooks" h-noexec; chmod -x h-noexec/hooks/hook
+refuse "lint: хук без бита исполнения" 'исполняем' "$S" lint h-noexec
+refuse "compat: хук без бита исполнения" 'FAIL.*исполняем' sh "$C" h-noexec
+check "матрица совместимости: строка для splify2-api 1.0.0 и каталог заглушки" sh -c "grep -q '\"splify2-api\": \"1.0.0\"' '$ROOT/tests/compat/matrix.json' && [ -f '$ROOT/tests/compat/splify2-1.0/host.py' ]"
+
 section "сборка C-плагинов (zig, musl)"
 ARCHES="x86_64 aarch64_cortex-a53 arm_cortex-a9 mipsel_24kc"
 [ "${FULL:-}" = 1 ] && ARCHES=$("$S" arches | awk '{print $1}')

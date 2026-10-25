@@ -105,6 +105,7 @@ func lintTree(t *tree, o lintOpts) *linter {
 	l.arches(p, o)
 	l.compat(p)
 	l.permissions(p, t)
+	l.splify2(p)
 	l.files(p, t)
 	l.names(p)
 	l.kindsKeys(p, t)
@@ -167,6 +168,8 @@ func (l *linter) compat(p *pluginDoc) {
 			l.checkRange(axis, r, sdkSteerABI)
 		case "host-api":
 			l.checkRange(axis, r, sdkHostAPI)
+		case "splify2-api":
+			l.checkRange(axis, r, sdkSplify2API)
 		case "steer-core":
 		default:
 			if _, err := parseRange(r); err != nil {
@@ -202,6 +205,9 @@ func (l *linter) compat(p *pluginDoc) {
 	if (p.UI != nil || len(p.Themes) > 0 || p.Type == "language") && !has("host-api") {
 		l.errf("compat: у ui, тем и плагина-языка должна быть ось host-api")
 	}
+	if p.Splify2 != nil && !has("splify2-api") {
+		l.errf("compat: есть блок splify2, но нет оси splify2-api")
+	}
 }
 
 func (l *linter) permissions(p *pluginDoc, t *tree) {
@@ -226,6 +232,20 @@ func (l *linter) permissions(p *pluginDoc, t *tree) {
 	}
 	if p.Steer.So != nil {
 		need("so", "steer.so")
+	}
+	if s := p.Splify2; s != nil {
+		if len(s.Hooks) > 0 {
+			need("splify2.hooks", "splify2.hooks")
+		}
+		if len(s.Methods.Override) > 0 {
+			need("splify2.override", "splify2.methods.override")
+		}
+		if len(s.Hide) > 0 {
+			need("splify2.hide", "splify2.hide")
+		}
+		if len(s.Deny) > 0 {
+			need("splify2.deny", "splify2.deny")
+		}
 	}
 	if len(p.Requires.System) > 0 {
 		need("system-packages", "requires.system")
@@ -294,6 +314,23 @@ func (p *pluginDoc) refs() []fref {
 	}
 	if p.RPC != nil {
 		add("rpc.prog", p.RPC.Prog, true)
+	}
+	if s := p.Splify2; s != nil {
+		for _, h := range sortedKeys(s.Hooks) {
+			add("splify2.hooks."+h+".prog", s.Hooks[h].Prog, true)
+		}
+		for _, tk := range s.Tasks {
+			add("splify2.tasks["+tk.Name+"].prog", tk.Prog, true)
+		}
+		if s.Events != nil {
+			add("splify2.events.prog", s.Events.Prog, true)
+		}
+		for _, m := range sortedKeys(s.Methods.Override) {
+			add("splify2.methods.override."+m+".prog", s.Methods.Override[m].Prog, true)
+		}
+		if s.Settings != nil {
+			add("splify2.settings.schema", s.Settings.Schema, false)
+		}
 	}
 	if p.UI != nil {
 		add("ui.entry", p.UI.Entry, false)
@@ -888,3 +925,79 @@ func printDiags(l *linter, name string) {
 }
 
 var _ = path.Join
+
+func sortedKeys[V any](m map[string]V) []string {
+	r := make([]string, 0, len(m))
+	for k := range m {
+		r = append(r, k)
+	}
+	sort.Strings(r)
+	return r
+}
+
+// splify2FinalMethod — методы объекта splify2, которые нельзя ни заменить, ни обернуть, ни занять
+// (docs/splify2-api.md, «Защита»).
+func splify2FinalMethod(n string) bool {
+	switch n {
+	case "live", "spec_get", "applied_get": // быстрый путь: диспетчер отвечает до реестра
+		return true
+	}
+	for _, pre := range []string{"plugin_", "plugins_", "repo_", "repos_", "prefs_"} {
+		if strings.HasPrefix(n, pre) {
+			return true
+		}
+	}
+	return false
+}
+
+// splify2 проверяет блок `splify2` (docs/splify2-api.md): режимы хуков, задачи, псевдонимы и переопределения.
+func (l *linter) splify2(p *pluginDoc) {
+	s := p.Splify2
+	if s == nil {
+		return
+	}
+	for _, h := range sortedKeys(s.Hooks) {
+		m := s.Hooks[h].Mode
+		if m == "transform" && h != "pre_spec_set" && h != "heal" {
+			l.errf("splify2.hooks.%s: режим transform есть только у pre_spec_set и heal", h)
+		}
+	}
+	seen := map[string]bool{}
+	for _, tk := range s.Tasks {
+		if seen[tk.Name] {
+			l.errf("splify2.tasks: задача %s объявлена дважды", tk.Name)
+		}
+		seen[tk.Name] = true
+		if tk.Cron != "" && strings.Contains(tk.Cron, "M") {
+			// M — «минута, выбранная один раз», только в поле минут
+			if f := strings.Fields(tk.Cron); len(f) != 5 || f[0] != "M" || strings.Contains(strings.Join(f[1:], " "), "M") {
+				l.errf("splify2.tasks[%s].cron: M допустима только в поле минут", tk.Name)
+			}
+		}
+	}
+	rpcHas := func(n string) bool {
+		if p.RPC == nil {
+			return false
+		}
+		_, ok := p.RPC.Methods[n]
+		return ok
+	}
+	for _, a := range sortedKeys(s.Methods.Alias) {
+		if splify2FinalMethod(a) {
+			l.errf("splify2.methods.alias.%s: метод final — его имя занять нельзя", a)
+		}
+		if t := s.Methods.Alias[a]; !rpcHas(t) {
+			l.errf("splify2.methods.alias.%s: у плагина нет rpc-метода %s", a, t)
+		}
+	}
+	for _, m := range sortedKeys(s.Methods.Override) {
+		if splify2FinalMethod(m) {
+			l.errf("splify2.methods.override.%s: метод final — его нельзя ни заменить, ни обернуть", m)
+		}
+	}
+	for _, d := range s.Deny {
+		if n := strings.TrimPrefix(d, "method:"); splify2FinalMethod(n) {
+			l.errf("splify2.deny: метод %s final — убрать его из ACL нельзя", n)
+		}
+	}
+}

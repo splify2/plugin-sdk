@@ -79,6 +79,35 @@ type pluginDoc struct {
 			Access string `json:"access"`
 		} `json:"methods"`
 	} `json:"rpc"`
+	Splify2 *struct {
+		Priority int `json:"priority"`
+		Hooks    map[string]struct {
+			Prog string `json:"prog"`
+			Mode string `json:"mode"`
+		} `json:"hooks"`
+		Tasks []struct {
+			Name  string `json:"name"`
+			Every string `json:"every"`
+			Cron  string `json:"cron"`
+			Prog  string `json:"prog"`
+		} `json:"tasks"`
+		Events *struct {
+			Prog      string   `json:"prog"`
+			Subscribe []string `json:"subscribe"`
+		} `json:"events"`
+		Methods struct {
+			Alias    map[string]string `json:"alias"`
+			Override map[string]struct {
+				Prog string `json:"prog"`
+				Mode string `json:"mode"`
+			} `json:"override"`
+		} `json:"methods"`
+		Settings *struct {
+			Schema string `json:"schema"`
+		} `json:"settings"`
+		Hide []string `json:"hide"`
+		Deny []string `json:"deny"`
+	} `json:"splify2"`
 	UI *struct {
 		Entry string   `json:"entry"`
 		CSS   []string `json:"css"`

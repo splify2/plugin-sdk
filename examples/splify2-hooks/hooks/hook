@@ -1,0 +1,11 @@
+#!/bin/sh
+# Один файл на все хуки: имя хука — в SPLIFY2_HOOK, контекст — JSON в stdin, ответ — JSON в stdout.
+cat >/dev/null
+case "$SPLIFY2_HOOK" in
+    pre_apply)       printf '{"ok":true,"warn":[]}\n' ;;
+    heal)            printf '{"ok":true,"message":"пример: спеку не меняю"}\n' ;;
+    backup_sections) printf '{"ok":true,"sections":{"example":"привет"}}\n' ;;
+    support_report)  printf '{"ok":true,"section":{"title":"Пример","text":"хуки подключены"}}\n' ;;
+    purge)           printf '{"ok":true,"plan":[]}\n' ;;
+    *)               printf '{"ok":true}\n' ;;
+esac

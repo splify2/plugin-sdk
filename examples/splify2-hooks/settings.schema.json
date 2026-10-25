@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Пример: хуки каркаса",
+  "type": "object",
+  "properties": {
+    "greeting": { "type": "string", "title": "Приветствие", "default": "привет" }
+  },
+  "additionalProperties": false
+}

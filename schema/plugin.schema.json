@@ -98,6 +98,10 @@
     "rpc": {
       "$ref": "#/$defs/rpc"
     },
+    "splify2": {
+      "$ref": "#/$defs/splify2",
+      "description": "Точки расширения каркаса splify2: хуки, задачи, события, псевдонимы и переопределения методов, экраны. docs/splify2-api.md."
+    },
     "ui": {
       "$ref": "#/$defs/ui"
     },
@@ -267,6 +271,14 @@
           "type": "string",
           "pattern": "^>=\\s*(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
           "description": "Только нижняя граница (>=X.Y.Z): тег «=версия ядра» снят (В10)."
+        },
+        "splify2-api": {
+          "$ref": "#/$defs/range",
+          "description": "Версия splify2-api (docs/splify2-api.md): нужна плагину с блоком `splify2`."
+        },
+        "splify2-luci": {
+          "$ref": "#/$defs/range",
+          "description": "Версия интерфейса каркаса LuCI: нужна плагину с `splify2.luci`."
         }
       },
       "additionalProperties": {
@@ -307,7 +319,7 @@
     },
     "permission": {
       "type": "string",
-      "pattern": "^(net\\.admin|nft|spec\\.transform|so|http|system-packages|ctl|fs:/.*)$"
+      "pattern": "^(net\\.admin|nft|spec\\.transform|so|http|system-packages|ctl|splify2\\.(hooks|override|hide|deny)|fs:/.*)$"
     },
     "resources": {
       "type": "object",
@@ -779,6 +791,271 @@
     "lang": {
       "type": "string",
       "pattern": "^[a-z]{2,3}(-[A-Z]{2})?$"
+    },
+    "splify2": {
+      "type": "object",
+      "properties": {
+        "priority": {
+          "type": "integer",
+          "default": 100,
+          "description": "Порядок хуков и обёрток: меньше — раньше, при равных — по id плагина."
+        },
+        "hooks": {
+          "type": "object",
+          "propertyNames": {
+            "enum": [
+              "pre_spec_set",
+              "post_spec_set",
+              "pre_apply",
+              "post_apply",
+              "post_apply_fail",
+              "heal",
+              "backup_sections",
+              "support_report",
+              "purge",
+              "plugin_changed"
+            ]
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/s2hook"
+          }
+        },
+        "tasks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/s2task"
+          }
+        },
+        "events": {
+          "type": "object",
+          "required": [
+            "prog"
+          ],
+          "properties": {
+            "prog": {
+              "$ref": "#/$defs/relpath"
+            },
+            "subscribe": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "pattern": "^([a-z0-9-]+|\\*)$"
+              }
+            },
+            "timeout_s": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "additionalProperties": true
+        },
+        "methods": {
+          "type": "object",
+          "properties": {
+            "alias": {
+              "type": "object",
+              "propertyNames": {
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*$"
+              }
+            },
+            "override": {
+              "type": "object",
+              "propertyNames": {
+                "pattern": "^[a-z][a-z0-9_]*$"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/s2override"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "luci": {
+          "type": "object",
+          "properties": {
+            "views": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "tabs": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "interface": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": true,
+          "description": "Зарезервировано под каркас LuCI (splify2-luci): в splify2-api 1.0 хост принимает поле, но не применяет."
+        },
+        "kinds": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Часть вида для каркаса (docs/…, «Что плагин ядра отдаёт каркасу»): зарезервировано."
+        },
+        "hide": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^(screen|kind):[a-z0-9:_-]+$"
+          },
+          "description": "Зарезервировано под каркас LuCI."
+        },
+        "deny": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^method:[a-z][a-z0-9_]*$"
+          },
+          "description": "Зарезервировано: убрать метод из ACL."
+        },
+        "settings": {
+          "type": "object",
+          "required": [
+            "schema"
+          ],
+          "properties": {
+            "schema": {
+              "$ref": "#/$defs/relpath",
+              "description": "Схема настроек плагина (JSON Schema): форма в каркасе LuCI и в Andromeda; значения — conf/<id>/settings.json, методы каркаса plugin_settings_get и plugin_settings_set."
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "s2hook": {
+      "type": "object",
+      "required": [
+        "prog"
+      ],
+      "properties": {
+        "prog": {
+          "$ref": "#/$defs/relpath"
+        },
+        "mode": {
+          "enum": [
+            "observe",
+            "warn",
+            "veto",
+            "transform"
+          ],
+          "default": "observe"
+        },
+        "timeout_s": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 10
+        },
+        "critical": {
+          "type": "boolean",
+          "default": false,
+          "description": "Упавший или не ответивший хук останавливает операцию. Только явно."
+        }
+      },
+      "additionalProperties": true
+    },
+    "s2task": {
+      "type": "object",
+      "required": [
+        "name",
+        "prog"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "every": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*[mhd]$",
+          "description": "Раз в N минут, часов или суток: 10m, 6h, 1d."
+        },
+        "cron": {
+          "type": "string",
+          "pattern": "^\\S+ \\S+ \\S+ \\S+ \\S+$",
+          "description": "Пять полей crontab; M в поле минут — минута, выбранная один раз."
+        },
+        "jitter": {
+          "enum": [
+            "none",
+            "random-minute"
+          ],
+          "default": "none"
+        },
+        "prog": {
+          "$ref": "#/$defs/relpath"
+        },
+        "only_if": {
+          "enum": [
+            "engine-enabled",
+            "spec-present"
+          ]
+        },
+        "timeout_s": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 600
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "every"
+          ]
+        },
+        {
+          "required": [
+            "cron"
+          ]
+        }
+      ],
+      "additionalProperties": true
+    },
+    "s2override": {
+      "type": "object",
+      "required": [
+        "prog",
+        "mode"
+      ],
+      "properties": {
+        "prog": {
+          "$ref": "#/$defs/relpath"
+        },
+        "mode": {
+          "enum": [
+            "replace",
+            "wrap"
+          ]
+        },
+        "timeout_s": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 10
+        },
+        "critical": {
+          "type": "boolean",
+          "default": false
+        }
+      },
+      "additionalProperties": true
     }
   }
 }
