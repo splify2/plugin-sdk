@@ -173,3 +173,47 @@ func TestInternalsBoundary(t *testing.T) {
 		t.Errorf("свой файл common.sh: %+v", l.ds)
 	}
 }
+
+func i18nLint(t *testing.T, o lintOpts, desc string, files map[string]string) *linter {
+	t.Helper()
+	tr := &tree{files: map[string]fileSpec{}}
+	langs := []string{}
+	for p, d := range files {
+		tr.files["i18n/"+p+".json"] = fileSpec{0644, []byte(d)}
+		langs = append(langs, p)
+	}
+	p := &pluginDoc{Description: desc}
+	p.I18n = &struct {
+		Dir       string   `json:"dir"`
+		Languages []string `json:"languages"`
+		Host      map[string]struct {
+			File string `json:"file"`
+			Name string `json:"name"`
+			Host string `json:"host"`
+		} `json:"host"`
+	}{Languages: langs}
+	l := &linter{}
+	l.i18n(p, tr, o)
+	return l
+}
+
+func TestI18nPluginName(t *testing.T) {
+	ok := `{"plugin.name":"A","plugin.description":"B"}`
+	full := map[string]string{"en": ok, "ru": ok}
+	if l := i18nLint(t, lintOpts{official: true}, "d", full); len(l.ds) != 0 {
+		t.Errorf("полные словари: %+v", l.ds)
+	}
+	noDesc := map[string]string{"en": ok, "ru": `{"plugin.name":"A"}`}
+	if l := i18nLint(t, lintOpts{official: true}, "d", noDesc); l.errors() != 1 {
+		t.Errorf("official без plugin.description — отказ: %+v", l.ds)
+	}
+	if l := i18nLint(t, lintOpts{}, "d", noDesc); l.errors() != 0 || len(l.ds) != 1 {
+		t.Errorf("без official — предупреждение: %+v", l.ds)
+	}
+	if l := i18nLint(t, lintOpts{official: true}, "", map[string]string{"en": `{"plugin.name":"A"}`, "ru": `{"plugin.name":"A"}`}); len(l.ds) != 0 {
+		t.Errorf("без описания в манифесте plugin.description не нужен: %+v", l.ds)
+	}
+	if l := i18nLint(t, lintOpts{official: true}, "d", map[string]string{"ru": ok}); l.errors() != 1 {
+		t.Errorf("official без словаря en — отказ: %+v", l.ds)
+	}
+}

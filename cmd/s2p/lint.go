@@ -114,7 +114,7 @@ func lintTree(t *tree, o lintOpts) *linter {
 	l.substitutions(p, t)
 	l.nft(p, t)
 	l.types(p, t)
-	l.i18n(p, t)
+	l.i18n(p, t, o)
 	l.themes(p, t)
 	l.ui(p, t)
 	l.elfs(p, t, o)
@@ -691,7 +691,7 @@ func (l *linter) dict(where string, data []byte, tech bool) {
 	}
 }
 
-func (l *linter) i18n(p *pluginDoc, t *tree) {
+func (l *linter) i18n(p *pluginDoc, t *tree, o lintOpts) {
 	if p.I18n == nil {
 		return
 	}
@@ -699,9 +699,19 @@ func (l *linter) i18n(p *pluginDoc, t *tree) {
 	if dir == "" {
 		dir = "i18n"
 	}
+	have := map[string]bool{}
 	for _, lg := range p.I18n.Languages {
+		have[lg] = true
 		if f, ok := t.files[dir+"/"+lg+".json"]; ok {
 			l.dict(dir+"/"+lg+".json", f.data, true)
+			l.dictName(p, dir+"/"+lg+".json", f.data, o)
+		}
+	}
+	if o.official {
+		for _, lg := range []string{"en", "ru"} {
+			if !have[lg] {
+				l.errf("i18n.languages: у официального плагина нет словаря %s", lg)
+			}
 		}
 	}
 	for lg, h := range p.I18n.Host {
@@ -712,6 +722,29 @@ func (l *linter) i18n(p *pluginDoc, t *tree) {
 		if h.Host != "" {
 			if _, err := parseRange(h.Host); err != nil {
 				l.errf("i18n.host.%s.host: %v", lg, err)
+			}
+		}
+	}
+}
+
+// dictName: название и описание плагина на языке словаря лежат в ключах plugin.name и plugin.description; по ним
+// раздел «Плагины» показывает плагин на языке человека, а без них — слова манифеста на их языке.
+func (l *linter) dictName(p *pluginDoc, where string, data []byte, o lintOpts) {
+	doc, err := decodeJSON(data)
+	if err != nil {
+		return
+	}
+	m, _ := doc.(map[string]any)
+	need := []string{"plugin.name"}
+	if p.Description != "" {
+		need = append(need, "plugin.description")
+	}
+	for _, k := range need {
+		if s, _ := m[k].(string); s == "" {
+			if o.official {
+				l.errf("%s: нет ключа %q — название и описание плагина на этом языке", where, k)
+			} else {
+				l.warnf("%s: нет ключа %q — раздел «Плагины» покажет слова манифеста", where, k)
 			}
 		}
 	}
