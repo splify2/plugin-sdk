@@ -8,6 +8,7 @@
     host spec get [--applied] [ФАЙЛ] | uses ПУТЬ | check ФАЙЛ    host apply    host engine
     host settings get КЛЮЧ | set КЛЮЧ ЗНАЧЕНИЕ
     host state check|export|import КАТАЛОГ    host hook backup_sections --ctx ФАЙЛ [--plugin ID]
+    host call МЕТОД < запрос    host probe geo|ident ВЫХОД
     host sub list | info ИМЯ | refresh ИМЯ    host sub quota ИМЯ    host sub title ИМЯ [НАЗВАНИЕ]
 """
 import json, os, re, shutil, sys
@@ -269,8 +270,34 @@ def cmd_sub(a):
     out({"ok": True, "name": name, "title": title})
 
 
+CALLS = ("vless_nodes", "hysteria2_nodes", "proxy_nodes", "vless_probe", "hysteria2_probe", "proxy_probe", "outbound_probe")
+
+
+def cmd_call(a):
+    if not a:
+        usage()
+    if a[0] not in CALLS:
+        fail("метод %s хост программам плагинов не вызывает" % a[0])
+    sys.stdin.read()
+    if a[0].endswith("_nodes"):
+        out({"output": "", "usable": 1, "nodes": [{"index": 0, "name": "stub node", "type": a[0].split("_")[0]}]})
+    if a[0] == "outbound_probe":
+        out({"output": "stub", "code": "ok", "state": "ok", "ms": 10})
+    out({"output": "", "results": [{"ok": True, "handshake_ms": 5, "ttfb_ms": 5}], "working": 1})
+
+
+def cmd_probe(a):
+    if len(a) < 2 or a[0] not in ("geo", "ident"):
+        usage()
+    if not re.match(r"^[a-zA-Z0-9_-]+$", a[1]):
+        fail("недопустимое имя выхода")
+    if a[0] == "ident":
+        out({"ok": True, "ident": "stub0:1"})
+    out({"ok": True, "output": a[1], "ip": "203.0.113.7", "cc": "DE", "ms": 100, "ident": "stub0:1"})
+
+
 CMDS = {"fetch": cmd_fetch, "fetch-mode": cmd_fetch_mode, "paths": cmd_paths, "spec": cmd_spec, "apply": cmd_apply,
-        "engine": cmd_engine, "settings": cmd_settings, "state": cmd_state, "hook": cmd_hook, "sub": cmd_sub}
+        "engine": cmd_engine, "settings": cmd_settings, "state": cmd_state, "hook": cmd_hook, "sub": cmd_sub, "call": cmd_call, "probe": cmd_probe}
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in CMDS:
