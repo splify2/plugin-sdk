@@ -2,7 +2,8 @@
 
 Версия **1.0.0**. Тег совместимости — `compat.host-api`. Типы — npm-пакет `@splify2/plugin-api`
 ([`packages/plugin-api/src/index.d.ts`](../packages/plugin-api/src/index.d.ts)): версия пакета равна
-версии host API. Адреса `файл:строка` — splify2 `91ac6d2`.
+версии host API. Кроме типов в нём константа `HOST_API_VERSION` и сборка на vite с общим preact
+(`@splify2/plugin-api/vite`). Адреса `файл:строка` — splify2 `91ac6d2`.
 
 Решение 2: **UI плагина работает в том же контексте, что панель; доверие — по подписи**. ES-модуль
 грузится прямо в панель и получает объект `host`.
@@ -106,7 +107,7 @@ export default plugin
 ```
 
 - Экспорт — `default` или именованные `activate`/`deactivate`.
-- `preact`: сборщик SDK подменяет `preact`, `preact/hooks`, `preact/jsx-runtime`, `react`, `react-dom`,
+- `preact`: сборщик SDK (`@splify2/plugin-api/vite`, `splify2Plugin()`) подменяет `preact`, `preact/hooks`, `preact/jsx-runtime`, `react`, `react-dom`,
   `react/jsx-runtime` на прокладку, которая берёт всё из `globalThis.__splify2_host.preact`. Свой
   экземпляр preact сломал бы хуки. Import map не годится: под LuCI страница чужая, вставить его раньше
   модулей LuCI нельзя.

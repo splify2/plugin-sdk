@@ -175,7 +175,8 @@ const struct steer_plugin_v1 *steer_plugin_v1_entry(uint16_t host_major, uint16_
 - Удаление поля, смена типа, порядка, смысла — major: новый `STEER_ABI_MAJOR`, новый
   `libsteer-plugin.so.<major>`, новое имя точки входа `steer_plugin_v<major>_entry`.
 - `steer-abi` и `steer-api` растут независимо: `.so` описывает свой манифест тем же `plugin.json` и
-  подстановками, поэтому плагин с `so` объявляет обе оси.
+  подстановками. Плагин с `so` объявляет `steer-abi`; ось `steer-api` ему нужна, только если у него есть и
+  программы, подкоманды, службы, хуки или файлы nft (`s2p lint` сверяет).
 - Лицензия: `.so` в `steerd` — производная работа steer (GPL-3.0, `steer/LICENSE`). Закрытому плагину
   (recheck, PLUGINS.md 9.2) — только программа.
 
@@ -205,7 +206,15 @@ const struct steer_plugin_v1 *steer_plugin_v1_entry(uint16_t host_major, uint16_
 
 ## Сборка
 
-`s2p build` (SDK) собирает `.so` zig-ом под 10 архитектур (`steer/build/arches.sh:7-18`) с
-`-fPIC -fvisibility=hidden -Wl,--version-script=<экспорт> -Wl,-z,defs` и загрузчиком из `interp_of`
-(`arches.sh:22-32`). Стенд SDK `s2p test` загружает `.so` в маленький хост с той же
-`libsteer-plugin.so.1` и прогоняет `init`, `check`, `emit` под qemu-user.
+`s2p build` (SDK) по шагу `cc` из `s2p.json` проекта вызывает `s2p cc --kind so`, и тот собирает `.so`
+zig-ом под 10 архитектур (`steer/build/arches.sh:7-18`) с
+`-fPIC -fvisibility=hidden -Wl,--version-script=<экспорт> -Wl,-z,defs -Wl,-soname,<имя файла>`; файл версий
+`{ global: steer_plugin_v1_entry; local: *; }` SDK пишет сам. Загрузчик из `interp_of` (`arches.sh:22-32`)
+ставится у программ, а не у `.so`. Проверка готового `.so` — `s2p lint`: машина и разрядность ELF под
+архитектуру архива, ровно один экспорт `steer_plugin_v1_entry`, нет `DT_NEEDED` на `libsteer*`, нет
+неразрешённых символов `steer_*`.
+
+Стенд, который загружает `.so` в маленький хост с настоящей `libsteer-plugin.so.1` и прогоняет `init`,
+`check`, `emit` под qemu-user (команда `s2p test`), **ещё не написан**: `libsteer-plugin.so.1` появится в
+`steer-core` 2.1. Сейчас стенд SDK (`tests/run.sh`) проверяет ELF (`file`, `readelf`), экспорт и
+повторяемость сборки.
