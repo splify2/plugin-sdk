@@ -498,6 +498,7 @@
         "prerouting-dnat",
         "forward",
         "input",
+        "output-raw",
         "output-pre",
         "output-post",
         "postrouting-pre",

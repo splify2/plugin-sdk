@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Заглушка ядра steer 2.1 (steer-api 1.1) — тест совместимости плагина со стороной ядра.
+"""Заглушка ядра steer 2.1 (steer-api 1.2) — тест совместимости плагина со стороной ядра.
 
     sh tests/compat/run.sh --steer <каталог плагина> [2.1]
 
@@ -13,7 +13,9 @@
   3. хук expand — код 0 и JSON с объектом outputs;
   4. помощник вида — {conf} выхода по steer-api 1.4, первое сообщение в STEER_EVENT_FD — hello с api
      того же major и minor не новее 1.1, mod — id плагина; процесс гаснет по SIGTERM;
-  5. подкоманды с conf: true — программа принимает --conf (не отвечает отказом про флаг, не 127).
+  5. подкоманды с conf: true — программа принимает --conf (не отвечает отказом про флаг, не 127);
+  6. службы steer.services[] (steer-api 1.2) — программа с argv манифеста и выданными ресурсами ({queue0},
+     {mark}…), первое событие hello (api не новее 1.2, mod — id плагина), живёт до SIGTERM и гаснет по нему.
 
 Код 0 — плагин подключится к ядру 2.1; иначе — строки FAIL с причиной.
 """
@@ -26,7 +28,7 @@ import sys
 import tempfile
 import time
 
-API = (1, 1)
+API = (1, 2)
 HERE = os.path.dirname(os.path.abspath(__file__))
 fails = []
 passes = 0
@@ -226,6 +228,54 @@ def main():
         except subprocess.TimeoutExpired:
             p.kill()
             ok("  гаснет по SIGTERM", False, "не погас за 5 с")
+        os.close(rfd)
+    for sv in st.get("services", []):
+        subst = {"plugin_dir": d, "plugin_conf": tmp, "plugin_state": tmp, "mark": "0x80000000", "mark0": "0x80000000",
+                 "mark1": "0x40000000", "queue0": "4300", "queue1": "4301", "port0": "10480", "port1": "10481"}
+        argv = prog_argv(d, sv, subst)
+        if not sv.get("argv"):
+            argv.append(sv["name"])
+        rfd, wfd = os.pipe()
+        e = env_for(pid, d, tmp)
+        for item in (sv.get("env") or {}).items() if isinstance(sv.get("env"), dict) else [x.split("=", 1) for x in (sv.get("env") or [])]:
+            e[item[0]] = item[1]
+        e.update(STEER_EVENT_FD=str(wfd), STEER_SUPD="1")
+        p = subprocess.Popen(argv, env=e, pass_fds=(wfd,), stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        os.close(wfd)
+        line = b""
+        end = time.time() + sv.get("timeout_s", 10)
+        while time.time() < end and not line.endswith(b"\n"):
+            rr, _, _ = select.select([rfd], [], [], max(0.0, end - time.time()))
+            if not rr:
+                break
+            ch = os.read(rfd, 1)
+            if not ch:
+                break
+            line += ch
+        try:
+            hello = json.loads(line.decode())
+        except ValueError:
+            hello = {}
+        api = str(hello.get("api", ""))
+        try:
+            ma, mi = (int(x) for x in api.split(".")[:2])
+        except ValueError:
+            ma, mi = -1, -1
+        ok("служба %s: hello первым (steer-api 2.1)" % sv["name"], hello.get("ev") == "hello",
+           "первая строка: %r, stderr: %s" % (line[:200], p.stderr.read(300).decode(errors="replace") if p.poll() is not None else ""))
+        ok("  api %s — major %d, minor не новее %d" % (api, API[0], API[1]), ma == API[0] and 0 <= mi <= API[1])
+        ok("  mod — id плагина (%s)" % pid, hello.get("mod") == pid, "mod: %r" % hello.get("mod"))
+        time.sleep(0.3)
+        ok("  служба живёт после hello (её не должно быть «выполнил и вышел»)", p.poll() is None,
+           "код выхода %s" % p.poll())
+        if p.poll() is None:
+            p.send_signal(signal.SIGTERM)
+        try:
+            p.wait(timeout=5)
+            ok("  гаснет по SIGTERM", True)
+        except subprocess.TimeoutExpired:
+            p.kill()
+            ok("  гаснет по SIGTERM", False, "не погасла за 5 с")
         os.close(rfd)
     # Подкоманды с {conf}: программа принимает --conf (выход — из файла, steer-api 4.3).
     kinds = st.get("kinds", [])
