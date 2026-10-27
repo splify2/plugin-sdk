@@ -2,22 +2,31 @@
   "schema": 1,
   "id": "tgws",
   "version": "2.1.0",
-  "variant": "lite",
+  "type": "plugin",
   "name": "Мост Telegram",
-  "description": "Telegram через веб-сокет без туннеля",
+  "description": "Telegram через Cloudflare, без настройки в приложении",
   "license": "GPL-3.0-only",
+  "homepage": "https://github.com/splify2/steer",
   "compat": {
-    "steer-api": "^1.0",
-    "host-api": "^1.0"
+    "steer-api": "^1.1",
+    "splify2-api": "^1.0"
   },
   "arch": [
-    "mipsel_24kc"
+    "aarch64_cortex-a53",
+    "aarch64_cortex-a72",
+    "aarch64_generic",
+    "arm_cortex-a7_neon-vfpv4",
+    "arm_cortex-a9",
+    "arm_cortex-a9_neon",
+    "arm_cortex-a9_vfpv3-d16",
+    "mipsel_24kc",
+    "mips_24kc",
+    "x86_64"
   ],
   "permissions": [
     "net.admin",
     "nft",
-    "http",
-    "spec.transform"
+    "http"
   ],
   "steer": {
     "kinds": [
@@ -28,7 +37,7 @@
           "mark"
         ],
         "helper": {
-          "prog": "bin/stgws",
+          "prog": "bin/tgws",
           "cmd": "tgws",
           "argv": [
             "tgws",
@@ -37,35 +46,43 @@
             "{conf}"
           ]
         },
+        "check": {
+          "prog": "bin/tgws",
+          "argv": [
+            "check"
+          ]
+        },
+        "health": "events",
         "nft": [
-          "nft/tgws-out.nft"
+          "nft/tgws.nft"
         ],
         "resources": {
           "ports": 1
         },
+        "description": "Мост Telegram.",
         "texts": {
-          "lan_only": "у трафика самого роутера моста нет"
+          "lan_only": "у трафика самого устройства моста нет"
         }
       }
     ],
-    "hooks": {
-      "pre_apply": {
-        "prog": "bin/stgws",
-        "argv": [
-          "tgws-pre-apply"
-        ]
+    "commands": [
+      {
+        "name": "tgws-probe",
+        "prog": "bin/tgws",
+        "help": "проверить путь до дата-центра Telegram и его ответ",
+        "usage": "[media] [--node N] [--domain ДОМЕН] [--direct] [--timeout СЕК]"
       }
+    ]
+  },
+  "splify2": {
+    "settings": {
+      "schema": "settings.schema.json"
     }
   },
-  "standalone": {
-    "prog": "bin/stgws",
-    "init": "scripts/tgws.init",
-    "update": true
-  },
-  "scripts": {
-    "postinst": "scripts/postinst",
-    "prerm": "scripts/prerm",
-    "migrate": "scripts/migrate"
-  },
-  "keep": []
+  "i18n": {
+    "languages": [
+      "ru",
+      "en"
+    ]
+  }
 }

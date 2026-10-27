@@ -15,11 +15,11 @@
 | `steer-proxy` | `steer-proxy` (trojan, shadowsocks, socks, http, vmess) | плагин `proxy` + `net1` |
 | `steer-xsteer` | `steer-xsteer` | плагин `xsteer` + `net1` |
 | `steer-obfs` | `steer-obfs` | плагин `obfs` |
-| `steer-tgws` | `steer-tgws` | плагин `tgws` + `net1` (TLS моста, `sources.mk:226`) |
+| `steer-tgws` | `steer-tgws` | плагин `tgws` репозитория `splify2-extended-plugins` (статическая программа со своим TLS; исходник — `steer/plugins/tgws`), раздел 2.3 |
 | `steer-warpbox` | `steer-warpbox` | плагин `warpbox` + `awg` + `net1` |
-| `steer-extended` | мета-пакет: ядро, vless, xsteer, obfs, tgws (`build.sh:615-630`) | плагины `vless`, `xsteer`, `obfs`, `tgws` |
+| `steer-extended` | мета-пакет: ядро, vless, xsteer, obfs, tgws (`build.sh:615-630`) | плагины `vless`, `xsteer`, `obfs` (из семени) и `tgws` (из `splify2-extended-plugins`) |
 | — (вид `awg` в ядре) | — | плагин `awg` (`impl: core`: зависимости `kmod-amneziawg\|kmod-wireguard` и UI; код вида в ядре, В2) |
-| `stgws` (brb, вне дерева steer) | мини-сборка моста Telegram профиля `tgws` (`steer/src/profile/tgws.c:1-33`) | плагин `tgws` (`full` или `lite`), раздел 6а |
+| `stgws` (brb, вне дерева steer) | мини-сборка моста Telegram профиля `tgws` (`steer/src/profile/tgws.c:1-33`) | плагин `tgws`; мини-сборки в дереве steer больше нет, раздел 6а |
 | `steer-box-connector` | sing-box на libsteer, свой установщик модулей (`steer-box-connector/files/usr/libexec/rpcd/steer-box`) | пересобран под 2.1.0 (связан с `libsteer.so.<версия>` — зависимость `steer-core` той же версии, `steer-box-connector/build.sh:69, 87`); модули ставит `steer plugin ensure` |
 | `splify2` 26.10.x | ставит и снимает `steer-<m>` пакетами (`files/usr/lib/splify2/rpcd/m-engine.sh:388-459, 849-943`) | `splify2` 26.11: раздел «Плагины» над менеджером ядра; семя `lang-en` |
 
@@ -33,7 +33,7 @@
 
 `steer-core` 2.1.0 объявляет прежние пакеты своими — тот же приём, что при переходе `steer` → `steer-core`:
 `provides: steer-vless=2.1.0-r1 …` и `replaces:` тем же списком (`steer-vless steer-hysteria2 steer-proxy
-steer-xsteer steer-obfs steer-warpbox steer-extended`; `steer-tgws` — не в списке). Больше ничего не нужно:
+steer-xsteer steer-obfs steer-warpbox steer-tgws steer-extended`). Больше ничего не нужно:
 решатель видит, что имена из `world` закрыты ядром, а прежние модули требуют `steer-core=2.0.5-r1`, и снимает их
 («Purging steer-vless …») в той же транзакции. `apk upgrade` из фида с индексом и `apk add steer-core.apk
 steer-tgws.apk` дают одно и то же. Варианты, проверенные на apk:
@@ -82,17 +82,16 @@ steer-tgws.apk` дают одно и то же. Варианты, провере
 
 ### 2.3 steer-tgws
 
-Решение: **`steer-tgws` 2.1.0 обновляется вместе с ядром** (мост остаётся пакетом до выхода плагина `tgws`, п. 6а).
-Он требует `steer-core` строго своей версии, как и раньше; `steer-tgws` 2.0.5 с ядром 2.1.0 не живёт.
-
-- apk из фида: `apk upgrade` обновляет `steer-tgws` сам (вместе с ядром, в одной транзакции);
-- apk файлами: `apk add steer-core.apk steer-tgws.apk` — оба в одной команде. `apk add steer-core.apk` один
-  при установленном `steer-tgws` 2.0.5 **отказывает**: `steer-core-2.1.0: breaks: steer-tgws-2.0.5[steer-core=2.0.5-r1]`
-  — это честный отказ, а не поломка (мост остался бы без ядра нужной версии). Установщик splify2 всегда кладёт оба;
-- opkg: `opkg install steer-core.ipk` один **проходит**, а `steer-tgws` 2.0.5 остаётся стоять; демон проверяет
-  версию при запуске модуля (hello) и откажет ему. Нужно обновить его следом: `opkg install steer-tgws.ipk`.
-
-Если мост не нужен, его просто снимают заранее (`apk del steer-tgws`).
+Решение владельца: **мост Telegram — плагин `tgws` репозитория `splify2-extended-plugins`** («stgws теперь часть
+splify2, у него появятся настройки»). Поэтому `steer-core` 2.1.0 заменяет и `steer-tgws`, как прочие пакеты модулей
+(apk — `provides`/`replaces`, opkg — `Conflicts`): переход снимает его в той же транзакции. В семени ядра плагина
+`tgws` нет — его ставят из репозитория `splify2-extended-plugins` (вкладка «Плагины» splify2 или
+`steer plugin install tgws`); до этого выход `kind: tgws` недоступен с причиной «нужен плагин tgws», а `apply` с ним —
+отказ. Исходник плагина — в дереве steer (`plugins/tgws`, `src/modules/main_tgws.c`, `src/proto/tgws`): программа
+статическая, со своим TLS 1.3/1.2 и wolfSSL (`net1` не отдаёт TLS-соединение), собирает её `steer/build.sh`, архив
+`.s2p` — `plugins/build.sh` репозитория `splify2-extended-plugins`. Прежние файлы моста (`/etc/steer/tgws-dc.conf`,
+`tgws-domains.lst`, `tgws-route.conf`) плагин не читает: адреса ДЦ, пул доменов, пути ДЦ и туннели WARP — его
+настройки (`conf/tgws/settings.json` по `settings.schema.json`); переноса нет (`scripts.migrate` у плагина нет).
 
 ## 3. Порядок установки `steer-core` 2.1.0
 
@@ -216,48 +215,12 @@ apk при обновлении зовёт `post-upgrade`, а не `post-install
   таблицы с 316, свой файл имён таблиц `stgws.conf`, порты моста с 8490 (`tgws.c:24-33`;
   `steer/src/model/marks.h:49-61`).
 
-Плагин `tgws` выходит в двух вариантах ([manifest.md](manifest.md), «Варианты»):
-
-| Вариант | Состав | Где |
-|---|---|---|
-| `full` | помощник вида `tgws` на `net1` | роутер с `steer-core` и местом |
-| `lite`, `standalone` | статический `stgws` (мини-ядро профиля `tgws` + мост + свой TLS) и init | мини-роутер без `steer-core`; роутер с `steer-core`, где на `full` с `net1` нет места |
-
-Режим микропакета «весь Telegram — в мост» плагин выражает хуком `pre_apply`: если в
-`conf/tgws/standalone.json` задан режим `all`, хук добавляет выход `kind: tgws` и правило для списка
-Telegram с `owner = {plugin: tgws}` — спека человека не меняется, интерфейс показывает «добавлено
-плагином tgws».
-
-### Три случая
-
-1. **stgws рядом с `steer-core` (splify2 или brb ставил оба).** Установка `steer-core` 2.1.0:
-   - `pre-upgrade` записывает в `migrate.json` и `stgws`, если пакет стоит;
-   - `migrate` переносит настройки stgws (режим, домен моста) в `conf/tgws/` скриптом `scripts/migrate`
-     плагина и ставит `tgws` (`full`, при нехватке места — `lite`) из сети или из семени;
-   - после проверки здоровья плагина `migrate --remove-old` снимает пакет `stgws` (отложенным заданием,
-     как прочие прежние пакеты, раздел 2); вместе с ним уходят его бит 28, таблица 316 и порты 8490 —
-     на роутере остаётся одно ядро, и Telegram больше не делят два движка.
-   Конфликт `steer-core` ↔ `stgws` в пакетах **не объявляется**: иначе решатель снял бы stgws раньше, чем
-   `migrate` прочтёт его настройки.
-
-2. **stgws один, `steer-core` помещается.** Последний выпуск пакета `stgws` (переходный, правка brb)
-   зависит от `steer-core >= 2.1.0`: установка тянет ядро, дальше — случай 1. Своего бинарника в
-   переходном пакете нет.
-
-3. **stgws один на мини-роутере, `steer-core` не помещается.** Переходный пакет `stgws` несёт архив
-   `tgws` `@lite` (подписанный, как семя) и в `postinst`:
-   - распаковывает его в `/usr/lib/steer/plugins/tgws` тем же кодом, что менеджер (он вкомпилирован в
-     `stgws`), с проверкой подписи;
-   - `scripts/postinst` плагина ставит `/etc/init.d/tgws` и переносит настройки;
-   - отложенным заданием снимает сам пакет `stgws`.
-   Дальше мини-ядро обновляет `tgws@lite` в фоне из официального индекса (ночное окно, откат по
-   здоровью). Пакетов steer на роутере нет вовсе; три пакета — правило для роутеров, где стоит ядро.
-   Если позже поставить `steer-core`, `migrate` видит плагин `tgws` со `standalone`, гасит и снимает его
-   init, а плагин дальше ведёт `steerd` (вариант `full`, если хватает места).
-
-Как переходный пакет понимает, что ядро «не помещается»: свободное место раздела overlay меньше
-размера `steer-core` из `version.json` выпусков плюс запас — тот же расчёт, что у менеджера
-([s2p.md](s2p.md), «Место»).
+**Как сделано (steer 2.1, ветка `tgws-plugin`).** Вариантов `full`/`lite` и мини-ядра `standalone` у плагина нет:
+мини-сборка `stgws` (профиль `tgws`) из дерева steer снята, плагин один — статическая программа под супервизором
+`steerd`, так что на роутере нужен `steer-core`. Бит 28 и таблица 316 мини-сборки плагинам не выдаются, пока
+прежний пакет `stgws` может стоять рядом. Переходного выпуска пакета `stgws` (правка brb) нет: код brb этот заход
+не видел (каталога `/root/brb` на машине разработки нет). Что осталось — в отчёте хаба: переходный пакет stgws,
+перенос его настроек в `conf/tgws/settings.json`, подбор путей ДЦ (`tgws pick` из brb) как задача плагина.
 
 ## 7. Откат на 2.0.5
 
