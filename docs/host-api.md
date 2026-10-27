@@ -137,7 +137,9 @@ export default plugin
 `host.rpc.call(method, params)` → объект `splify2.p.<id>`, метод из `rpc.methods` манифеста. Права — ACL
 `splify2-p-<id>` из `access` (read/write), как у любого `luci-app-*`. Ответ — JSON программы как есть;
 `{ok:false, error}` и ошибки ubus приходят как `RpcError` с `kind`: `denied`, `timeout`, `unavailable`,
-`failed`. `job()` — для методов с `job: true`: ждёт задания, промежуточные ответы — в `onProgress`.
+`failed`. У `RpcError` из отказа метода есть ещё `code` (машинное слово ответа) и `args` (подстановки `{имя}`), если метод их
+назвал: текст `message` хост уже подставил на языке каркаса, а плагину со своим переводом достаточно `code` и `args`
+([splify2-api.md](splify2-api.md#тексты-для-человека)). `job()` — для методов с `job: true`: ждёт задания, промежуточные ответы — в `onProgress`.
 
 ### core
 
