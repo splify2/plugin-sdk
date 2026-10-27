@@ -382,12 +382,45 @@
       "additionalProperties": true
     },
     "ctlarg": {
-      "enum": [
-        "name",
-        "int",
-        "target",
-        "file",
-        "word"
+      "description": "Слово запроса сокета: вид строкой или объектом (steer-api 1.1) — вид, флаг, которым ядро передаёт слово программе, и пределы числа.",
+      "anyOf": [
+        {
+          "enum": [
+            "name",
+            "int",
+            "target",
+            "file",
+            "word"
+          ]
+        },
+        {
+          "type": "object",
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "name",
+                "int",
+                "target",
+                "file",
+                "word"
+              ]
+            },
+            "flag": {
+              "type": "string",
+              "pattern": "^--[a-z0-9][a-z0-9-]*$"
+            },
+            "min": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": false
+        }
       ]
     },
     "command": {
@@ -432,21 +465,27 @@
             "body": {
               "enum": [
                 "none",
-                "spec",
                 "file"
               ],
-              "default": "none"
+              "default": "none",
+              "description": "file — тело запроса ядро кладёт во временный файл и передаёт путь последним словом."
             },
             "lock": {
               "type": "boolean",
               "default": false
             },
-            "spec": {
-              "type": "boolean",
-              "default": true
+            "body_max": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Предел тела, байт (умолчание 16 МиБ)."
             }
           },
           "additionalProperties": true
+        },
+        "conf": {
+          "type": "boolean",
+          "default": false,
+          "description": "Первое слово — имя выхода: программа получает --conf с {conf} этого выхода (steer-api 1.1, 4.3)."
         }
       },
       "additionalProperties": true
