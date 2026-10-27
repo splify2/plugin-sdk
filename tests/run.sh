@@ -185,6 +185,12 @@ check "образец splify2-hooks подключается к splify2-api 1.0"
 check "образец собирается в .s2p" "$S" build "$ROOT/examples/splify2-hooks" --unsigned -o s2out
 check "официальные плагины каркаса (если рядом) подключаются" sh -c "
   for d in '$ROOT'/../splify2/plugins/*/ ${S2_FRAME_PLUGINS:-}; do [ -f \"\$d/plugin.json\" ] || continue; sh '$C' \"\$d\" 1.0 >/dev/null || exit 1; done"
+# Тексты для человека: библиотека заглушки несёт s2_t и s2_fail_code (splify2-api 1.0, «Тексты для человека»).
+check "заглушка lib.sh: s2_fail_code — текст по умолчанию, code и args" sh -c "
+  out=\$(SPLIFY2_LIB='$ROOT/tests/compat/splify2-1.0/lib.sh' sh -c '. \"\$SPLIFY2_LIB\"; s2_fail_code lists.too_big \"The list is larger than {kb} KB ({kb})\" kb 4') &&
+  [ \"\$out\" = '{\"ok\":false,\"error\":\"The list is larger than 4 KB (4)\",\"code\":\"lists.too_big\",\"args\":{\"kb\":\"4\"}}' ] || { echo \"\$out\"; exit 1; }"
+check "заглушка lib.sh: s2_t подставляет {имя}" sh -c "
+  [ \"\$(SPLIFY2_LIB='$ROOT/tests/compat/splify2-1.0/lib.sh' sh -c '. \"\$SPLIFY2_LIB\"; s2_t a.b \"Hello {who}\" who world')\" = 'Hello world' ]"
 mutate_h() {  # ИМЯ ПРАВКА-python — копия образца splify2-hooks с правкой plugin.json
     rm -rf "h-$1"; cp -r "$ROOT/examples/splify2-hooks" "h-$1"; python3 - "h-$1/plugin.json" "$2" <<'PY'
 import json, sys
