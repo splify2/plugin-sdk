@@ -700,6 +700,36 @@
           },
           "description": "Файлы nft плагина (docs/steer-api.md, «nft»): наборы и цепочки-слоты; ставятся атомарно с набором правил steer."
         },
+        "links": {
+          "type": "array",
+          "description": "steer-api 1.3: пути в системе, которые менеджер ведёт, пока плагин стоит (docs/manifest.md, «steer.links»): link — символическая ссылка на файл плагина, conf — копия настроек, если файла нет. Каждый path — под правом fs:.",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "target"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "pattern": "^/.*[^/]$",
+                "description": "абсолютный путь файла в системе"
+              },
+              "target": {
+                "$ref": "#/$defs/relpath",
+                "description": "файл внутри плагина"
+              },
+              "mode": {
+                "enum": [
+                  "link",
+                  "conf"
+                ],
+                "default": "link"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
         "so": {
           "type": "object",
           "required": [
