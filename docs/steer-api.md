@@ -122,7 +122,8 @@ libsteer-ом (`load_nodes` → `load_spec`, `steer/src/proto/vless/vlmain.c:66-
   "paths": {
     "etc": "/etc/steer", "state": "/var/lib/steer", "lists": "/etc/steer/lists",
     "plugin": "/usr/lib/steer/plugins/vless", "conf": "/etc/steer/plugins/conf/vless",
-    "plugin_state": "/var/lib/steer/plugin/vless"
+    "plugin_state": "/var/lib/steer/plugin/vless",
+    "fakeip": "/var/lib/steer/fakeip.state"
   },
   "platform": "openwrt"
 }
@@ -138,6 +139,7 @@ libsteer-ом (`load_nodes` → `load_spec`, `steer/src/proto/vless/vlmain.c:66-
 | `sock_mark`, `sock_mark_required` | метка, которую помощник ставит **своим** сокетам к узлам (`SO_MARK`); `required` — отказ `SO_MARK` при `over` есть отказ, а не «пойдём напрямую» | `out_underlay_mark` и `transport_set_sock_mark` (`vlmain.c:98-105`; `steer/src/proto/transport/trdial.c:209-212`) |
 | `tcp_port` | порт слушателя TCP (вид с `tcp-redir`) | `out_tcp_port` (`marks.h:314-317`) |
 | `ports`, `queues` | ресурсы выхода (`kinds[].resources`) | — |
+| `paths.fakeip` | таблица fake-IP резолвера ядра, только чтение: строки `домен⇥поддельный IPv4⇥настоящий IPv4 или -[⇥настоящий IPv6]`, файл переписывается целиком (`rename`). По ней туннель узнаёт имя и настоящий адрес за поддельным | `<state>/fakeip.state` (`steer/src/tunnel/stack.c`, `fake_load`) |
 
 - Файл пишется атомарно (временный + `rename`) до запуска помощника, права `0600`.
 - **Подпись перезапуска** — хеш содержимого `{conf}`, версии плагина и версий плагинов-библиотек из его `requires.plugins`. Сменилась — помощник
@@ -420,6 +422,7 @@ stdin — подготовленная до этого места спека в 
 | `prerouting-dnat` | nat, prerouting | dstnat+1 | после fake-IP и подмены порта (dstnat+0); место `tgws_redirect` |
 | `forward` | filter, forward | filter−5 | после `forward_v6` (mangle), до fw4 (filter+0) |
 | `input` | filter, input | filter+0 | до `input_down` (filter+10) |
+| `output-raw` | filter, output | raw+1 (−299) | **до conntrack** (−200): `notrack` на пакеты, которые плагин сам породил (с API 1.2, [steer-api-1.2.md](steer-api-1.2.md)) |
 | `output-pre` | route, output | mangle+0 | до `output_mark` (mangle+1) |
 | `output-post` | route, output | mangle+2 | после `output_mark` |
 | `postrouting-pre` | filter, postrouting | filter−5 | до запретов утечек (filter+0) |
