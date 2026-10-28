@@ -41,7 +41,8 @@ var reCmdWord = regexp.MustCompile(`(?:^|[;&|(]|\{\s|\$\()\s*(?:(?:if|then|do|el
 // reCaseLabel — строка с метками `case` (`lists|list_fetch|…) ;;`): имена методов плагина вызовами не считаются.
 var reCaseLabel = regexp.MustCompile(`^\s*([A-Za-z_*][A-Za-z0-9_*-]*\|)+([A-Za-z_*][A-Za-z0-9_*-]*\)|\\?$)`)
 
-var reFuncDef = regexp.MustCompile(`(?m)^\s*([A-Za-z_][A-Za-z0-9_]*)\s*\(\)\s*\{`)
+// Определение функции: shell `имя() {` и ucode/JS `function имя(`.
+var reFuncDef = regexp.MustCompile(`(?m)^\s*(?:function\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(|([A-Za-z_][A-Za-z0-9_]*)\s*\(\)\s*\{)`)
 var reUciSplify2 = regexp.MustCompile(`\buci\b[^|;&\n]*\bsplify2\b`)
 
 // scriptLike — файл, который стоит читать как программу: расширение .sh, строка `#!` или каталоги программ.
@@ -75,7 +76,7 @@ func (l *linter) internals(p *pluginDoc, t *tree, o lintOpts) {
 		if scriptLike(path, f.data) {
 			names = append(names, path)
 			for _, m := range reFuncDef.FindAllStringSubmatch(string(f.data), -1) {
-				defs[m[1]] = true
+				defs[m[1]+m[2]] = true
 			}
 		}
 	}
@@ -83,7 +84,7 @@ func (l *linter) internals(p *pluginDoc, t *tree, o lintOpts) {
 	for _, path := range names {
 		for i, line := range strings.Split(string(t.files[path].data), "\n") {
 			s := strings.TrimSpace(line)
-			if s == "" || strings.HasPrefix(s, "#") {
+			if s == "" || strings.HasPrefix(s, "#") || strings.HasPrefix(s, "//") {
 				continue
 			}
 			at := func(what string) {
