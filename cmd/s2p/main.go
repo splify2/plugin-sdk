@@ -24,7 +24,7 @@ const usage = `s2p — SDK плагинов splify2 и steer
 
 Подробности: s2p <команда> -h, docs/guide.md.`
 
-var toolVersion = "1.0.0"
+var toolVersion = "1.4.0" // версия SDK: s2p выходит вместе с ним (последняя строка tests/compat/matrix.json)
 
 func fatal(f string, a ...any) {
 	fmt.Fprintf(os.Stderr, "s2p: "+f+"\n", a...)
