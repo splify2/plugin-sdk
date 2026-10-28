@@ -43,7 +43,7 @@ func archIDs() []string {
 
 // Версии осей совместимости, под которые собран этот SDK (docs/manifest.md, «compat»).
 const (
-	sdkSteerAPI = "1.2.0"
+	sdkSteerAPI = "1.3.0"
 	sdkSteerABI = "1.0.0"
 	sdkHostAPI  = "1.0.0"
 	// splify2-api: хуки, задачи, события, псевдонимы и переопределения методов бэкенда splify2; с 1.1 — интерфейс плагина

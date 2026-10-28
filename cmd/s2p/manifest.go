@@ -31,6 +31,13 @@ type kindDoc struct {
 	} `json:"resources"`
 }
 
+// linkDoc — путь в системе, который ведёт менеджер, пока плагин стоит (steer.links, steer-api 1.3).
+type linkDoc struct {
+	Path   string `json:"path"`
+	Target string `json:"target"`
+	Mode   string `json:"mode"`
+}
+
 type pluginDoc struct {
 	Schema      int               `json:"schema"`
 	ID          string            `json:"id"`
@@ -68,8 +75,9 @@ type pluginDoc struct {
 			PreApply *prog `json:"pre_apply"`
 			Event    *prog `json:"event"`
 		} `json:"hooks"`
-		Nft []string `json:"nft"`
-		So  *struct {
+		Nft   []string  `json:"nft"`
+		Links []linkDoc `json:"links"`
+		So    *struct {
 			Path string `json:"path"`
 		} `json:"so"`
 	} `json:"steer"`

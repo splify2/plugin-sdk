@@ -188,7 +188,7 @@ func (l *linter) compat(p *pluginDoc) {
 	// steer-api нужна всему, что исполняется как программа или подстановка: помощникам, проверкам,
 	// разворотам, подкомандам, службам, хукам и файлам nft. Плагин, у которого только .so и виды без
 	// этого, обходится осью steer-abi (docs/manifest.md, «compat»).
-	usesAPI := len(p.Steer.Commands)+len(p.Steer.Services)+len(p.Steer.Nft) > 0 ||
+	usesAPI := len(p.Steer.Commands)+len(p.Steer.Services)+len(p.Steer.Nft)+len(p.Steer.Links) > 0 ||
 		p.Steer.Hooks.PreApply != nil || p.Steer.Hooks.Event != nil
 	for _, k := range p.Steer.Kinds {
 		if k.Helper != nil || k.Check != nil || k.Expand != nil || len(k.Nft) > 0 {
@@ -197,6 +197,17 @@ func (l *linter) compat(p *pluginDoc) {
 	}
 	if usesAPI && !has("steer-api") {
 		l.errf("compat: есть программы, подкоманды, службы, хуки или nft, но нет оси steer-api")
+	}
+	// steer.links исполняет менеджер ядра с steer-api 1.3: ядро старше молча поставило бы плагин без его путей.
+	if len(p.Steer.Links) > 0 && has("steer-api") {
+		if rg, err := parseRange(p.Compat["steer-api"]); err == nil {
+			for _, old := range []string{"1.0.0", "1.1.0", "1.2.0"} {
+				if v, _ := parseVersion(old); rg.contains(v) {
+					l.errf("compat.steer-api %q принимает ядро со steer-api %s, а steer.links исполняет только 1.3 и новее — пишите ^1.3", p.Compat["steer-api"], old[:3])
+					break
+				}
+			}
+		}
 	}
 	if p.Steer.So != nil && !has("steer-abi") {
 		l.errf("compat: есть steer.so, но нет оси steer-abi")
@@ -253,19 +264,44 @@ func (l *linter) permissions(p *pluginDoc, t *tree) {
 		need("system-packages", "requires.system")
 	}
 	for _, k := range p.Keep {
-		ok := false
-		for _, perm := range p.Permissions {
-			if strings.HasPrefix(perm, "fs:") {
-				base := strings.TrimSuffix(perm[3:], "/")
-				if k == base || strings.HasPrefix(k, base+"/") {
-					ok = true
-				}
-			}
-		}
-		if !ok {
+		if !p.fsAllowed(k) {
 			l.errf("права: путь keep %s не разрешён правом fs:%s", k, k)
 		}
 	}
+	// steer.links (steer-api 1.3): путь — абсолютный путь файла под правом fs:, не путь ядра, один на плагин.
+	seen := map[string]bool{}
+	for i, lk := range p.Steer.Links {
+		w := fmt.Sprintf("steer.links[%d]", i)
+		switch {
+		case !strings.HasPrefix(lk.Path, "/") || strings.Contains(lk.Path, "..") || strings.HasSuffix(lk.Path, "/"):
+			l.errf("%s: путь %q — не абсолютный путь файла", w, lk.Path)
+		case strings.HasPrefix(lk.Path, "/usr/lib/steer/") || strings.HasPrefix(lk.Path, "/etc/steer/") ||
+			strings.HasPrefix(lk.Path, "/usr/sbin/steer") || lk.Path == "/etc/init.d/steer":
+			l.errf("%s: %s — путь ядра steer, плагину его не дать", w, lk.Path)
+		case !p.fsAllowed(lk.Path):
+			l.errf("права: ссылка %s не разрешена правом fs:%s", lk.Path, lk.Path)
+		}
+		if lk.Mode != "" && lk.Mode != "link" && lk.Mode != "conf" {
+			l.errf("%s: mode %q — только link или conf", w, lk.Mode)
+		}
+		if seen[lk.Path] {
+			l.errf("%s: путь %s объявлен дважды", w, lk.Path)
+		}
+		seen[lk.Path] = true
+	}
+}
+
+// fsAllowed — путь вне каталогов плагина разрешён правом fs:<путь> (сам путь или каталог над ним).
+func (p *pluginDoc) fsAllowed(k string) bool {
+	for _, perm := range p.Permissions {
+		if strings.HasPrefix(perm, "fs:") {
+			base := strings.TrimSuffix(perm[3:], "/")
+			if k == base || strings.HasPrefix(k, base+"/") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 type fref struct {
@@ -313,6 +349,12 @@ func (p *pluginDoc) refs() []fref {
 	}
 	if p.Steer.So != nil {
 		add("steer.so.path", p.Steer.So.Path, false)
+	}
+	for _, lk := range p.Steer.Links {
+		// Программы по ссылкам (/usr/bin, /etc/init.d) исполняют чужие программы — бит x обязателен.
+		x := strings.HasPrefix(lk.Path, "/usr/bin/") || strings.HasPrefix(lk.Path, "/usr/sbin/") ||
+			strings.HasPrefix(lk.Path, "/etc/init.d/") || strings.HasPrefix(lk.Path, "/usr/libexec/")
+		add("steer.links["+lk.Path+"].target", lk.Target, x)
 	}
 	if p.RPC != nil {
 		add("rpc.prog", p.RPC.Prog, true)

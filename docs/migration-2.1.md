@@ -1,6 +1,8 @@
 # Переход на steer-core 2.1.0: три пакета и плагины
 
-Решения 7–9, В4, В5, В10: пакетов apk/ipk остаётся три — `steer-core`, `steer-box-connector`, `splify2`;
+Решения 7–9, В4, В5, В10 и «steer-box-connector тоже плагин» (DIRECTIONS.md хаба): продуктовых пакетов apk/ipk
+два — `steer-core` и `splify2`; коннектор — плагин `box-connector`, а пакет `steer-box-connector` остался без
+файлов — он только держит имя `sing-box` для podkop и forkop (раздел 6);
 все протоколы — плагины из официального репозитория, они ставятся изначально; установка `steer-core`
 2.1.0 снимает все прежние пакеты `steer-*`; «семя» лежит в `steer-core`, поэтому переход и первая
 установка проходят без сети. Адреса — steer `9f0e1fd`.
@@ -20,7 +22,7 @@
 | `steer-extended` | мета-пакет: ядро, vless, xsteer, obfs, tgws (`build.sh:615-630`) | плагины `vless`, `xsteer`, `obfs` (из семени) и `tgws` (из `splify2-extended-plugins`) |
 | — (вид `awg` в ядре) | — | плагин `awg` (`impl: core`: зависимости `kmod-amneziawg\|kmod-wireguard` и UI; код вида в ядре, В2) |
 | `stgws` (brb, вне дерева steer) | мини-сборка моста Telegram профиля `tgws` (`steer/src/profile/tgws.c:1-33`) | плагин `tgws`; мини-сборки в дереве steer больше нет, раздел 6а |
-| `steer-box-connector` | sing-box на libsteer, свой установщик модулей (`steer-box-connector/files/usr/libexec/rpcd/steer-box`) | пересобран под 2.1.0 (связан с `libsteer.so.<версия>` — зависимость `steer-core` той же версии, `steer-box-connector/build.sh:69, 87`); модули ставит `steer plugin ensure` |
+| `steer-box-connector` | sing-box на libsteer, свой установщик модулей (`steer-box-connector/files/usr/libexec/rpcd/steer-box`) | плагин `box-connector` (статическая программа со своей копией TLS, `compat.steer-api: ^1.3`, пути в системе — `steer.links`) и пакет `steer-box-connector` без файлов: `provides: sing-box`, `steer-core >= 2.1.0`; протоколы ставит `steer plugin ensure` (раздел 6) |
 | `splify2` 26.10.x | ставит и снимает `steer-<m>` пакетами (`files/usr/lib/splify2/rpcd/m-engine.sh:388-459, 849-943`) | `splify2` 26.11: раздел «Плагины» над менеджером ядра; семя `lang-en` |
 
 ## 2. Пакетный механизм
@@ -194,10 +196,38 @@ apk при обновлении зовёт `post-upgrade`, а не `post-install
   `steer-core` 2.1.0 объявляет `conflicts: splify2<26.11` (apk `!splify2<26.11`, opkg `Conflicts:
   splify2 (<< 26.11)`), а обычный путь — «Обновить» в splify2 26.10, который ставит splify2 26.11 и
   ядро вместе. Проверить на стенде. Довод — [open.md](open.md), О-15.
-- **Коннектор 2.1.0**: зависит от `steer-core` той же версии (как сейчас); свой установщик модулей
-  (`files/usr/libexec/rpcd/steer-box:110-330`) заменяется `steer plugin ensure vless hysteria2 proxy`;
-  перечень нужного даёт его перевод конфига (`steer-box-connector/src/translate.c:1966-1968` — сейчас
-  печатает имена пакетов `steer-vless`…, станет — имена плагинов).
+- **Коннектор 2.1.0 — плагин ядра `box-connector`** (решение владельца: «steer-box-connector тоже плагин ядра,
+  пакетов остаётся два»). podkop и forkop — апстрим, их код не меняется; совместимость — со стороны коннектора:
+  - **программа** `bin/sing-box` — статическая, со своей копией TLS 1.3, REALITY, HTTP/2, корней, разбора `.srs` и
+    wolfSSL из дерева steer (`steer/build/ext-build.sh --static`, `EXT_TLS_SRC`), как плагин `tgws`: связь с
+    `libsteer.so.<версия>` привязала бы плагин к одной версии ядра, а тега «=ядро» нет (В10);
+  - **пути, которые ищут podkop и forkop** (`/usr/bin/sing-box`, `/etc/init.d/sing-box`, `/etc/config/sing-box`),
+    страница LuCI коннектора и правило fw4 — `steer.links` ([steer-api-1.3.md](steer-api-1.3.md)): ссылки в каталог
+    плагина, настройки — копией (uci правит файл);
+  - **имя `sing-box` в базе пакетов.** podkop зависит от пакета `sing-box` (podkop 0.7.24: `Depends: libc, sing-box,
+    curl, jq, kmod-nft-tproxy, coreutils-base64, bind-dig`); прежде имя давал пакет коннектора (`provides`). Взять
+    его `steer-core` не может: **apk 3 считает provides имени его владельцем** — с `provides: sing-box` (с версией и
+    без, с `provider_priority` и без) установка ядра снимает настоящий sing-box у каждого, кто его ставил, и не
+    даёт поставить его рядом («conflicts: steer-core[sing-box]»; проверено на apk 3.0.8,
+    `steer-box-connector/tests/standin.sh`, «почему не ядро»). Этого нельзя: чужой пакет — чужая настройка, а
+    `steer-core` стоит у всех пользователей splify2. Поэтому имя держит **пакет `steer-box-connector` без файлов**
+    (`noarch` / `all`): `provides: sing-box=<версия>`, `!sing-box !sing-box-tiny !sing-box-extended` (opkg —
+    `Conflicts`, `Replaces`, `Provides`), зависимость `steer-core >= 2.1.0`. Его скрипт ставит плагин:
+    `steer plugin ensure box-connector --pkg steer-box-connector` (изнутри транзакции пакета в базе ещё нет —
+    [steer-api-1.3.md](steer-api-1.3.md)), снятие пакета снимает и плагин. Плагин требует его
+    (`requires.system`), так что `steer plugin install box-connector` без пакета отказывает, и путь
+    `/usr/bin/sing-box` без имени `sing-box` в базе не остаётся;
+  - **переход с 2.0.x** — тот же пакет `steer-box-connector` новой версии: `apk upgrade` или `apk add` файлов ядра
+    и пакета одной командой; прежний бинарник уходит с прежним пакетом раньше, чем скрипт нового ставит плагин.
+    Иначе не выходит: в транзакции, где снимается пакет 2.0.x, имя `sing-box` кто-то должен держать, а `steer-core`
+    не может (выше). Одно ядро без пакета apk не ставит (`breaks: steer-box-connector-2.0.x[steer-core=2.0.x]`) —
+    podkop не остаётся без sing-box молча;
+  - свой установщик модулей (`files/usr/libexec/rpcd/steer-box:110-330`) заменён `steer plugin ensure … --job`;
+    перечень нужного даёт перевод конфига (`sing-box box-needs` печатает id плагинов `vless`, `hysteria2`, `proxy`).
+  Проверено на настоящих менеджерах (`steer-box-connector/tests/standin.sh`): apk 3 — замена sing-box из фида,
+  `apk add podkop` и `apk upgrade` при стоящем плагине не тянут настоящий sing-box, переход 2.0.5 → 2.1 файлами и
+  из фида, обратный путь `apk add sing-box '!steer-box-connector'`; opkg 24.10 — метаданные пакета и плагин из
+  файла. На стенде QEMU с podkop и forkop — ещё нет.
 
 ## 6а. stgws — микропакет моста Telegram
 
@@ -238,7 +268,7 @@ apk при обновлении зовёт `post-upgrade`, а не `post-install
    регистрации `/etc/steer/warp/` целы.
 4. Первая установка 2.1.0 на чистый роутер без сети: протоколы из семени, `kmod-tun` нет — `pending`.
 5. Нет места: отказ числами, выходы в `on_fail`, остальное работает.
-6. Коннектор: podkop с vless + `steer-core` 2.1.0 + коннектор 2.1.0.
+6. Коннектор: podkop с vless + `steer-core` 2.1.0 + пакет `steer-box-connector` 2.1.0 + плагин `box-connector`.
 7. splify2 26.10 → «Обновить» → splify2 26.11 + ядро 2.1.0 одной транзакцией.
 8. Откат на 2.0.5.
 9. stgws рядом с `steer-core` 2.0.5 → 2.1.0: настройки перенесены, `tgws` встал, `stgws` снят, Telegram

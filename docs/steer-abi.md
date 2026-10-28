@@ -17,8 +17,9 @@
 - Статический musl `dlopen` не умеет: клиент `steer` статический (`build-libs.sh:226`), сборки телефона и
   стендов — тоже (`steer/src/kinds/kind.c:110-114`). Там `.so`-плагинов нет.
 - libsteer экспортирует 367 внутренних символов по `steer/build/libsteer.map` (порождён
-  `build/libs-exports.sh`, обещаний нет) и собирается с `-Bsymbolic` (`build-libs.sh:167-169`); внешнему
-  модулю коннектора — ещё 20 символов `steer/build/exports-ext.lst:8-27`. Ядро требует **точную**
+  `build/libs-exports.sh`, обещаний нет) и собирается с `-Bsymbolic` (`build-libs.sh:167-169`); коннектору 2.0.x
+  — ещё 20 символов `steer/build/exports-ext.lst:8-27` (с 2.1 он плагин `box-connector` со своей копией TLS и
+  libsteer не берёт). Ядро требует **точную**
   версию модулей (`steer/src/daemon/supd.c:323-340`). Обещать такой ABI сторонним нельзя.
 
 ## Устройство
@@ -144,7 +145,8 @@ const struct steer_plugin_v1 *steer_plugin_v1_entry(uint16_t host_major, uint16_
 - **Ядро держит свою копию TLS/QUIC и wolfSSL.** Они нужны ядру и без протоколов: резолвер — DoH, DoH3,
   DoQ (`DNSD_SRC`, `sources.mk:120-124`), замер групп — HTTPS (`urltls.c`, `sources.mk:320`), менеджер
   плагинов — HTTPS-клиент (`wb_https`, `steer/src/proto/warp/wbhttps.h:35`, переносится в `src/lib`),
-  коннектор — TLS, REALITY и HTTP/2 по `exports-ext.lst`. Брать их у `net1` ядро не может: менеджер
+  коннектор 2.0.x — TLS, REALITY и HTTP/2 по `exports-ext.lst` (плагин `box-connector` 2.1 несёт свою копию).
+  Брать их у `net1` ядро не может: менеджер
   должен скачать первый плагин, когда плагинов ещё нет, а обновление `net1` в фоне не должно ронять
   DNS роутера.
 - **Протоколы не берут wolfSSL у ядра.** SONAME `libsteer-wolfssl.so.5.9.4` несёт версию wolfSSL

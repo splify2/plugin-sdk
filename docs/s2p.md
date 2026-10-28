@@ -133,6 +133,9 @@ vless подписан ключом 3f1a…, такого ключа у ядра
 `<state>` — каталог состояния ядра: на OpenWrt `/var/lib/steer` (`steer/src/platform/openwrt.c:24-26`).
 Каталог спеки — `/etc/steer` (`openwrt.c:19-21`).
 
+Пути плагина в системе (`steer.links`, steer-api 1.3) ставит менеджер ядра: ссылки в `/usr/lib/steer/plugins/<id>/…`
+и копии настроек (`mode: conf`), [steer-api-1.3.md](steer-api-1.3.md).
+
 Ссылки splify2 (ставит splify2 по событию `plugin`, а не менеджер ядра):
 `/www/luci-static/resources/splify2/plugins/<id>` → `…/<id>/ui`, `/usr/libexec/rpcd/splify2-p-<id>` →
 общий диспетчер, `/usr/share/rpcd/acl.d/splify2-p-<id>.json`.

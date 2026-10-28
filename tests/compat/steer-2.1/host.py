@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Заглушка ядра steer 2.1 (steer-api 1.2) — тест совместимости плагина со стороной ядра.
+"""Заглушка ядра steer 2.1 (steer-api 1.3) — тест совместимости плагина со стороной ядра.
 
     sh tests/compat/run.sh --steer <каталог плагина> [2.1]
 
@@ -15,7 +15,11 @@
      того же major и minor не новее 1.1, mod — id плагина; процесс гаснет по SIGTERM;
   5. подкоманды с conf: true — программа принимает --conf (не отвечает отказом про флаг, не 127);
   6. службы steer.services[] (steer-api 1.2) — программа с argv манифеста и выданными ресурсами ({queue0},
-     {mark}…), первое событие hello (api не новее 1.2, mod — id плагина), живёт до SIGTERM и гаснет по нему.
+     {mark}…), первое событие hello (api не новее 1.2, mod — id плагина), живёт до SIGTERM и гаснет по нему;
+  7. пути в системе steer.links (steer-api 1.3) — как их ставит менеджер: path абсолютный и под правом fs:,
+     не путь ядра; цель — файл плагина (у программ по ссылке — исполняемый); ссылка, поставленная в
+     подставной корень, ведёт в файл плагина, а программа по ней запускается (у link в /usr/bin — с
+     `--help` или `version`, код не 126/127).
 
 Код 0 — плагин подключится к ядру 2.1; иначе — строки FAIL с причиной.
 """
@@ -28,7 +32,7 @@ import sys
 import tempfile
 import time
 
-API = (1, 2)
+API = (1, 3)
 HERE = os.path.dirname(os.path.abspath(__file__))
 fails = []
 passes = 0
@@ -295,6 +299,37 @@ def main():
         except subprocess.TimeoutExpired:
             good, err = True, ""
         ok("подкоманда %s принимает --conf {conf}" % c["name"], good, err.strip()[:200])
+    # steer.links (steer-api 1.3): менеджер ставит их после распаковки, до scripts.postinst.
+    links = st.get("links", [])
+    perms = [p[3:].rstrip("/") for p in m.get("permissions", []) if p.startswith("fs:")]
+    root = os.path.join(tmp, "sysroot")
+    seen = set()
+    for lk in links:
+        path, target, mode = lk.get("path", ""), lk.get("target", ""), lk.get("mode", "link")
+        good = path.startswith("/") and ".." not in path and not path.endswith("/") and path not in seen
+        seen.add(path)
+        ok("ссылка %s: абсолютный путь файла, один раз" % path, good)
+        core = path.startswith(("/usr/lib/steer/", "/etc/steer/", "/usr/sbin/steer")) or path == "/etc/init.d/steer"
+        ok("  не путь ядра steer", not core)
+        ok("  под правом fs:", any(path == b or path.startswith(b + "/") for b in perms), "права: %s" % perms)
+        ok("  mode link или conf (%s)" % mode, mode in ("link", "conf"))
+        src = os.path.join(d, target)
+        ok("  цель %s — файл плагина" % target, ".." not in target and not target.startswith("/") and os.path.isfile(src))
+        if not os.path.isfile(src) or mode != "link":
+            continue
+        full = root + path
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        os.symlink(src, full)
+        ok("  ссылка ведёт в каталог плагина", os.path.realpath(full) == os.path.realpath(src))
+        if path.startswith(("/usr/bin/", "/usr/sbin/", "/etc/init.d/", "/usr/libexec/")):
+            ok("  программа по ссылке исполняемая", os.access(full, os.X_OK))
+        if path.startswith(("/usr/bin/", "/usr/sbin/")) and os.access(full, os.X_OK):
+            try:
+                r = subprocess.run([full, "version"], capture_output=True, timeout=10)
+                code = r.returncode
+            except (OSError, subprocess.TimeoutExpired) as e:
+                code = 127
+            ok("  программа по ссылке запускается (%s version → код %s)" % (path, code), code not in (126, 127))
     print("steer-2.1: %d ok, %d fail" % (passes, len(fails)))
     return 1 if fails else 0
 

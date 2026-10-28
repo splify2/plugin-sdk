@@ -72,6 +72,16 @@ mutate sox so "p['permissions'] = []"
 refuse "lint: .so без права so" '"so"' "$S" lint m-sox
 mutate keep helper "p['keep'] = ['/etc/example']"
 refuse "lint: keep без права fs" 'fs:' "$S" lint m-keep
+# steer.links (steer-api 1.3): пути в системе под правом fs:, не пути ядра, ось steer-api не ниже 1.3.
+LNK="p['steer']['links'] = [{'path': '/usr/bin/example', 'target': 'bin/example-helper'}]"
+mutate lnk helper "$LNK; p['compat']['steer-api'] = '^1.3'; p['permissions'] = p.get('permissions', []) + ['fs:/usr/bin/example']"
+check "lint: steer.links с правом fs: и steer-api ^1.3" "$S" lint m-lnk
+mutate lnkfs helper "$LNK; p['compat']['steer-api'] = '^1.3'"
+refuse "lint: steer.links без права fs" 'fs:/usr/bin/example' "$S" lint m-lnkfs
+mutate lnkapi helper "$LNK; p['compat']['steer-api'] = '^1.0'; p['permissions'] = p.get('permissions', []) + ['fs:/usr/bin/example']"
+refuse "lint: steer.links при steer-api ниже 1.3" 'пишите \^1.3' "$S" lint m-lnkapi
+mutate lnkcore helper "p['steer']['links'] = [{'path': '/etc/init.d/steer', 'target': 'bin/example-helper'}]; p['compat']['steer-api'] = '^1.3'; p['permissions'] = p.get('permissions', []) + ['fs:/etc/init.d/steer']"
+refuse "lint: steer.links на путь ядра" 'путь ядра' "$S" lint m-lnkcore
 mutate theme-bad theme "p['themes'][0]['file'] = 'themes/dusk.json'"
 python3 - <<'PY'
 import json
