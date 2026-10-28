@@ -319,6 +319,14 @@ uci), остаётся после снятия и уходит с `--purge`. К�
 раньше. Нужен `compat.steer-api: "^1.4"`. Подробно — [steer-api-1.4.md](steer-api-1.4.md); образец —
 [`examples/box-connector`](../examples/box-connector/plugin.json).
 
+### `steer.settings` и `kinds[].paths` (steer-api 1.5)
+
+`"settings": "restart"` — настройки плагина (`conf/<id>/settings.json`) входят в подпись перезапуска всех его
+помощников и служб: хост, записав их, зовёт `steer reload`, и ядро поднимает помощников с новыми настройками сразу, без
+паузы перезапуска; плагин читает файл один раз при старте и за ним не следит. `kinds[].paths: true` — помощник
+отставляет пути событием `health`, и `status` выхода несёт `paths_down` всегда. Оба требуют
+`compat.steer-api: "^1.5"`. Подробно — [steer-api-1.5.md](steer-api-1.5.md); образец — плагин `tgws`.
+
 ## `rpc`
 
 ```json

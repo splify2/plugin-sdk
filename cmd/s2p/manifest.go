@@ -25,6 +25,7 @@ type kindDoc struct {
 	Check  *prog    `json:"check"`
 	Expand *prog    `json:"expand"`
 	Nft    []string `json:"nft"`
+	Paths  *bool    `json:"paths"` // steer-api 1.5: помощник отставляет пути (paths_down в status всегда)
 	Res    struct {
 		Ports  int `json:"ports"`
 		Queues int `json:"queues"`
@@ -78,6 +79,7 @@ type pluginDoc struct {
 		Nft      []string       `json:"nft"`
 		Links    []linkDoc      `json:"links"`
 		Platform map[string]any `json:"platform"`
+		Settings string         `json:"settings"` // steer-api 1.5: "restart" — settings.json в подписи перезапуска
 		So       *struct {
 			Path string `json:"path"`
 		} `json:"so"`

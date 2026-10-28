@@ -584,6 +584,11 @@
           ],
           "default": "events"
         },
+        "paths": {
+          "type": "boolean",
+          "default": false,
+          "description": "steer-api 1.5: помощник отставляет пути событием health — status выхода несёт paths_down всегда, пустым массивом, когда отставленных нет (docs/steer-api-1.5.md)."
+        },
         "nft": {
           "type": "array",
           "items": {
@@ -710,6 +715,12 @@
             "router_self": { "type": "boolean" }
           },
           "additionalProperties": false
+        },
+        "settings": {
+          "enum": [
+            "restart"
+          ],
+          "description": "steer-api 1.5: settings.json плагина входит в подпись перезапуска его помощников и служб; хост, записав настройки, зовёт steer reload (docs/steer-api-1.5.md)."
         },
         "links": {
           "type": "array",

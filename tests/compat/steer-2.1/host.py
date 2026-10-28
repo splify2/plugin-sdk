@@ -32,7 +32,7 @@ import sys
 import tempfile
 import time
 
-API = (1, 4)
+API = (1, 5)
 ABI = (1, 0)  # steer-abi: ось плагинов-.so (docs/steer-abi.md)
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
@@ -278,6 +278,17 @@ def main():
         except subprocess.TimeoutExpired:
             good, err = True, ""
         ok("подкоманда %s принимает --conf {conf}" % c["name"], good, err.strip()[:200])
+    # steer.settings и kinds[].paths (steer-api 1.5): подпись перезапуска и paths_down.
+    if "settings" in st:
+        sv = st["settings"]
+        ok("steer.settings — «restart»", sv == "restart", repr(sv))
+        n = len(st.get("services", [])) + sum(1 for k in st.get("kinds", []) if k.get("helper"))
+        ok("  у плагина есть помощник или служба — перезапуск по настройкам кого-то касается", n > 0)
+        ok("  и схема настроек (splify2.settings.schema)",
+           bool(((m.get("splify2") or {}).get("settings") or {}).get("schema")))
+    for k in st.get("kinds", []):
+        if "paths" in k:
+            ok("вид %s: paths — логическое" % k.get("name"), isinstance(k["paths"], bool), repr(k["paths"]))
     # steer.links (steer-api 1.3): менеджер ставит их после распаковки, до scripts.postinst.
     links = st.get("links", [])
     perms = [p[3:].rstrip("/") for p in m.get("permissions", []) if p.startswith("fs:")]

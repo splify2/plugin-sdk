@@ -68,7 +68,7 @@
 | `tasks` | периодические задачи, раздел 3 |
 | `events` | подписка на события ядра, раздел 4 |
 | `methods` | псевдонимы и переопределения методов, раздел 5 |
-| `settings.schema` | схема настроек плагина (JSON Schema, путь внутри плагина). Одна схема — форма в каркасе LuCI и форма в Andromeda. Значения лежат в `conf/<id>/settings.json`, читают и пишут их методы каркаса `plugin_settings_get` и `plugin_settings_set` |
+| `settings.schema` | схема настроек плагина (JSON Schema, путь внутри плагина). Одна схема — форма в каркасе LuCI и форма в Andromeda. Значения лежат в `conf/<id>/settings.json`, читают и пишут их методы каркаса `plugin_settings_get` и `plugin_settings_set`; у плагина с `steer.settings: "restart"` ([steer-api-1.5.md](steer-api-1.5.md)) хост после записи зовёт `steer reload` — помощники плагина поднимаются с новыми настройками сразу |
 | `luci.interface` | с 1.1: вид LuCI, которым плагин заменяет главный экран ([splify2-api-1.1.md](splify2-api-1.1.md)) |
 | `luci.views`, `luci.tabs`, `kinds`, `hide`, `deny` | **зарезервированы** под каркас LuCI (`splify2-luci`): схема их принимает, хост не применяет (раздел 10) |
 

@@ -44,6 +44,15 @@
       "steer-api": "1.4.0",
       "host": "splify2-1.2",
       "steer-host": "steer-2.1"
+    },
+    {
+      "sdk": "1.5.0",
+      "splify2": "26.11.0",
+      "splify2-api": "1.2.0",
+      "host-api": "1.0.0",
+      "steer-api": "1.5.0",
+      "host": "splify2-1.2",
+      "steer-host": "steer-2.1"
     }
   ]
 }
