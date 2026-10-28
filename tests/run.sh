@@ -190,7 +190,7 @@ for f in craft/path-*; do
 done
 
 section "совместимость с splify2-api (заглушка хоста)"
-C="$ROOT/tests/compat/run.sh"
+C="$ROOT/tests/compat/run.sh"; export S2P="$S"
 check "образец splify2-hooks подключается к splify2-api 1.0" sh "$C" "$ROOT/examples/splify2-hooks" 1.0
 check "образец собирается в .s2p" "$S" build "$ROOT/examples/splify2-hooks" --unsigned -o s2out
 check "официальные плагины каркаса (если рядом) подключаются" sh -c "

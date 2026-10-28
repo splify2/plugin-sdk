@@ -285,7 +285,7 @@ def main(pdir):
                     check(bool(pr.get("title")) and isinstance(pr.get("title"), str), "настройка %s: у схемы есть title" % k)
 
         # --- граница API: тот же поиск запретного, что у `s2p lint --official`
-        s2p = os.path.join(HERE, "..", "..", "..", "bin", "s2p")
+        s2p = os.environ.get("S2P") or os.path.join(HERE, "..", "..", "..", "bin", "s2p")
         if os.access(s2p, os.X_OK):
             r = subprocess.run([s2p, "lint", "--official", pdir], capture_output=True, text=True)
             check(r.returncode == 0, "граница API: s2p lint --official%s" % ("" if r.returncode == 0 else ": " + (r.stderr or r.stdout).strip().splitlines()[0]))
