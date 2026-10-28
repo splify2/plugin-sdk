@@ -1,0 +1,4 @@
+{
+  "plugin.name": "Example: main screen",
+  "plugin.description": "Replaces the main screen of splify2 with its own LuCI view"
+}

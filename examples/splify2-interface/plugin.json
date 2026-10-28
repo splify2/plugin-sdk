@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "id": "example-interface",
+  "version": "0.1.0",
+  "name": "Example: main screen",
+  "description": "Replaces the main screen of splify2 with its own LuCI view",
+  "license": "MIT",
+  "compat": { "splify2-api": "^1.1" },
+  "arch": "all",
+  "i18n": { "languages": ["en", "ru"] },
+  "splify2": {
+    "luci": { "interface": "luci/home.js" },
+    "settings": { "schema": "settings.schema.json" }
+  }
+}

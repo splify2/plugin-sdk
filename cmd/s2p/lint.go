@@ -333,6 +333,9 @@ func (p *pluginDoc) refs() []fref {
 		if s.Settings != nil {
 			add("splify2.settings.schema", s.Settings.Schema, false)
 		}
+		if s.Luci != nil && s.Luci.Interface != "" {
+			add("splify2.luci.interface", s.Luci.Interface, false)
+		}
 	}
 	if p.UI != nil {
 		add("ui.entry", p.UI.Entry, false)
@@ -970,6 +973,8 @@ func sortedKeys[V any](m map[string]V) []string {
 	return r
 }
 
+var luciInterfaceRe = regexp.MustCompile(`^luci/[A-Za-z0-9_-]+\.js$`)
+
 // splify2FinalMethod — методы объекта splify2, которые нельзя ни заменить, ни обернуть, ни занять
 // (docs/splify2-api.md, «Защита»).
 func splify2FinalMethod(n string) bool {
@@ -1028,6 +1033,17 @@ func (l *linter) splify2(p *pluginDoc) {
 	for _, m := range sortedKeys(s.Methods.Override) {
 		if splify2FinalMethod(m) {
 			l.errf("splify2.methods.override.%s: метод final — его нельзя ни заменить, ни обернуть", m)
+		}
+	}
+	if s.Luci != nil && s.Luci.Interface != "" {
+		// Каталог luci/ плагина хост подключает как view/splify2/p-<id>/, вид — файл прямо в нём (splify2-api 1.1).
+		if !luciInterfaceRe.MatchString(s.Luci.Interface) {
+			l.errf("splify2.luci.interface: %q — нужен файл прямо в luci/ с расширением .js (luci/<имя>.js)", s.Luci.Interface)
+		}
+		if r, err := parseRange(p.Compat["splify2-api"]); err == nil {
+			if v0, _ := parseVersion("1.0.0"); r.contains(v0) {
+				l.errf("splify2.luci.interface есть с splify2-api 1.1: ось compat.splify2-api %q включает 1.0.0, а там поля нет", p.Compat["splify2-api"])
+			}
 		}
 	}
 	for _, d := range s.Deny {

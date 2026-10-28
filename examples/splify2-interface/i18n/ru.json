@@ -1,0 +1,4 @@
+{
+  "plugin.name": "Пример: главный экран",
+  "plugin.description": "Заменяет главный экран splify2 своим видом LuCI"
+}

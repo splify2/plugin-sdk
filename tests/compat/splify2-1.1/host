@@ -1,0 +1,352 @@
+#!/usr/bin/env python3
+"""Заглушка служб хоста splify2-api 1.1 (docs/splify2-api.md, раздел 8) для тестов совместимости.
+
+Не копия каркаса, а стенд: те же команды, ответы и коды возврата, что у splify2-host, поверх каталога-песочницы
+(S2_SANDBOX): спека-фикстура, каталог списков, сеть из фикстур, настройки плагина. Плагин видит только это.
+
+    host fetch URL ФАЙЛ [--timeout СЕК]    host fetch-mode [get | set always|off]    host paths
+    host spec get [--applied] [ФАЙЛ] | uses ПУТЬ | check ФАЙЛ    host apply    host engine
+    host settings get КЛЮЧ | set КЛЮЧ ЗНАЧЕНИЕ
+    host state check|export|import КАТАЛОГ    host hook backup_sections --ctx ФАЙЛ [--plugin ID]
+    host release versions steer|splify2    host release fetch ПРОДУКТ ВЕРСИЯ ИМЯ ФАЙЛ    host pkg info|install …
+    host engine modules [--want a,b] | settle [модуль…]
+    host call МЕТОД < запрос    host probe geo|ident ВЫХОД
+    host sub list | info ИМЯ | refresh ИМЯ    host sub quota ИМЯ    host sub title ИМЯ [НАЗВАНИЕ]
+"""
+import json, os, re, shutil, sys
+
+W = os.environ.get("S2_SANDBOX", "")
+if not W:
+    print(json.dumps({"ok": False, "error": "заглушка хоста: нет песочницы"})); sys.exit(1)
+LISTS = os.path.join(W, "lists")
+SPEC = os.path.join(W, "spec.json")
+WEB = os.path.join(W, "web")
+
+
+def out(d, rc=0):
+    print(json.dumps(d, ensure_ascii=False))
+    sys.exit(rc)
+
+
+def fail(msg, **kw):
+    d = {"ok": False, "error": msg}
+    d.update(kw)
+    out(d, 1)
+
+
+def usage():
+    sys.stderr.write(__doc__)
+    sys.exit(2)
+
+
+def atomic(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + ".new"
+    open(tmp, "w", encoding="utf-8").write(text)
+    os.replace(tmp, path)
+
+
+def cmd_fetch(a):
+    if len(a) < 2:
+        usage()
+    url, dest = a[0], a[1]
+    if not re.match(r"^https?://", url):
+        fail("ссылка должна начинаться с http:// или https://")
+    # Сеть заглушки — файл web.json «ссылка → файл в web/»; чего там нет, того «не скачалось».
+    try:
+        table = json.load(open(os.path.join(WEB, "web.json"), encoding="utf-8"))
+    except Exception:
+        table = {}
+    src = table.get(url)
+    if not src:
+        fail("не скачалось", note="заглушка хоста: адреса %s нет в фикстурах" % url)
+    os.makedirs(os.path.dirname(dest) or ".", exist_ok=True)
+    shutil.copyfile(os.path.join(WEB, src), dest + ".new")
+    os.replace(dest + ".new", dest)
+    out({"ok": True})
+
+
+def cmd_fetch_mode(a):
+    f = os.path.join(W, "fetch-mode")
+    if not a or a[0] == "get":
+        mode = open(f).read().strip() if os.path.exists(f) else "off"
+        out({"mode": mode, "out": ""})
+    if a[0] == "set" and len(a) > 1 and a[1] in ("always", "off"):
+        atomic(f, a[1])
+        out({"ok": True, "mode": a[1]})
+    fail("режим бывает always или off")
+
+
+def cmd_paths(a):
+    os.makedirs(LISTS, exist_ok=True)
+    out({"ok": True, "lists": LISTS, "spec_dir": W, "subs_dir": os.path.join(W, "subs"), "steer": os.path.join(W, "steer")})
+
+
+def cmd_spec(a):
+    if not a:
+        usage()
+    if a[0] == "get":
+        if not os.path.exists(SPEC):
+            fail("спеки нет")
+        src = SPEC
+        if len(a) > 1 and a[1] == "--applied":
+            a = [a[0]] + a[2:]
+            applied = os.path.join(W, "spec.applied.json")
+            if os.path.exists(applied):
+                src = applied
+        if len(a) > 1:
+            shutil.copyfile(src, a[1])
+            out({"ok": True})
+        sys.stdout.write(open(src, encoding="utf-8").read())
+        sys.exit(0)
+    if a[0] == "uses" and len(a) > 1:
+        sys.exit(0 if os.path.exists(SPEC) and a[1] in open(SPEC, encoding="utf-8").read() else 1)
+    if a[0] == "check" and len(a) > 1:
+        try:
+            json.load(open(a[1], encoding="utf-8"))
+        except Exception:
+            fail("ядро отвергло спеку: не JSON")
+        out({"ok": True})
+    usage()
+
+
+def cmd_apply(a):
+    print(json.dumps({"ok": True, "output": ""}))
+    sys.exit(0)
+
+
+def cmd_engine(a):
+    out({"ok": True, "known": True, "enabled": True, "running": True})
+
+
+def schema():
+    pdir = os.environ.get("STEER_PLUGIN_DIR", "")
+    conf = os.environ.get("STEER_PLUGIN_CONF", "")
+    if not pdir or not conf:
+        fail("служба для программ плагина: нет STEER_PLUGIN_DIR")
+    try:
+        rel = json.load(open(os.path.join(pdir, "plugin.json"), encoding="utf-8"))["splify2"]["settings"]["schema"]
+        sch = json.load(open(os.path.join(pdir, rel), encoding="utf-8"))
+    except Exception:
+        fail("у плагина нет схемы настроек")
+    return sch, os.path.join(conf, "settings.json")
+
+
+def values(path):
+    try:
+        d = json.load(open(path, encoding="utf-8"))
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
+
+
+def cmd_settings(a):
+    if len(a) < 2:
+        usage()
+    sch, path = schema()
+    key = a[1]
+    if not re.match(r"^[A-Za-z0-9_]+$", key):
+        fail("имя настройки: латиница, цифры, подчёркивание")
+    prop = sch.get("properties", {}).get(key)
+    if prop is None:
+        fail("в схеме нет настройки %s" % key)
+    cur = values(path)
+    if a[0] == "get":
+        v = cur.get(key, prop.get("default"))
+        if v is None:
+            print("")
+            sys.exit(1)
+        print(("true" if v else "false") if isinstance(v, bool) else v)
+        sys.exit(0)
+    if a[0] != "set":
+        usage()
+    val = a[2] if len(a) > 2 else ""
+    if val == "":
+        cur.pop(key, None)
+    else:
+        t = prop.get("type")
+        if t == "integer":
+            if not re.match(r"^[0-9]+$", val):
+                fail("%s: ждём целое число" % key)
+            n = int(val)
+            if "minimum" in prop and n < prop["minimum"]:
+                fail("%s: не меньше %s" % (key, prop["minimum"]))
+            if "maximum" in prop and n > prop["maximum"]:
+                fail("%s: не больше %s" % (key, prop["maximum"]))
+            new = n
+        elif t == "boolean":
+            if val not in ("true", "false"):
+                fail("%s: ждём true или false" % key)
+            new = val == "true"
+        elif t == "string":
+            new = val
+        else:
+            fail("%s: службой записываются строки, числа и флаги" % key)
+        if "enum" in prop and val not in [str(x) for x in prop["enum"]]:
+            fail("%s: значение не из списка допустимых" % key)
+        if "pattern" in prop and not re.search(prop["pattern"], val):
+            fail("%s: значение не подходит под шаблон" % key)
+        cur[key] = new
+    atomic(path, json.dumps(cur, ensure_ascii=False) + "\n")
+    out({"ok": True})
+
+
+STATE_FILES = re.compile(r"^(spec|sub|select|options|sub\.[A-Za-z0-9_]+|xsteer\.[A-Za-z0-9_.:@-]+)$")
+
+
+def cmd_state(a):
+    if len(a) < 2:
+        usage()
+    op, d = a[0], a[1]
+    store = os.path.join(W, "core-state")
+    if op == "export":
+        os.makedirs(d, exist_ok=True)
+        if os.path.isdir(store):
+            for n in os.listdir(store):
+                shutil.copyfile(os.path.join(store, n), os.path.join(d, n))
+        out({"ok": True})
+    if op in ("check", "import"):
+        names = [n for n in os.listdir(d) if STATE_FILES.match(n)] if os.path.isdir(d) else []
+        if not names:
+            fail("в архиве нет ни настроек, ни списков")
+        if op == "import":
+            os.makedirs(store, exist_ok=True)
+            for n in names:
+                shutil.copyfile(os.path.join(d, n), os.path.join(store, n))
+            out({"ok": True, "spec": "spec" in names, "sub": "sub" in names,
+                 "subs": len([n for n in names if n.startswith("sub.")]),
+                 "xsteer": len([n for n in names if n.startswith("xsteer.")]), "select": "select" in names})
+        out({"ok": True})
+    usage()
+
+
+def cmd_hook(a):
+    if not a or a[0] != "backup_sections":
+        fail("хук %s хост программам плагинов не раздаёт" % (a[0] if a else ""))
+    # В песочнице других плагинов нет: пустой список, как у хоста в безопасном режиме.
+    out({"ok": True, "results": []})
+
+
+def cmd_sub(a):
+    if not a or a[0] not in ("list", "info", "refresh", "quota", "title"):
+        usage()
+    f = os.path.join(W, "subs", "subs.json")
+    try:
+        subs = json.load(open(f, encoding="utf-8"))
+    except Exception:
+        subs = {}
+    if a[0] == "list":
+        out({"subs": [{"name": n, "title": v.get("title", ""), "url": "", "kind": v["kind"], "present": True,
+                       "bytes": 100, "mtime": 1700000000, "used": 0, "used_nodes": 0} for n, v in subs.items()],
+             "hwid": "stub"})
+    if len(a) < 2:
+        usage()
+    name = a[1]
+    sub = subs.get(name)
+    if sub is None:
+        fail("подписки «%s» нет" % name)
+    if a[0] == "info":
+        out({"url": "", "name": name, "kind": sub["kind"], "present": True, "bytes": 100, "mtime": 1700000000})
+    if a[0] == "refresh":
+        if sub["kind"] != "url":
+            out({"ok": False, "error": "узлы заданы ссылками — обновлять нечем"})
+        out({"ok": True, "name": name, "changed": False, "bytes": 100, "usable": 3})
+    if a[0] == "quota":
+        d = {"ok": True, "kind": sub["kind"], "name": name}
+        if sub["kind"] != "url":
+            d.update(asked=False, why="узлы заданы ссылками — остаток брать негде")
+        else:
+            d["asked"] = True
+            if "quota" in sub:
+                d["quota"] = sub["quota"]
+            else:
+                d["why"] = "панель не сообщила остаток трафика"
+        out(d)
+    title = a[2] if len(a) > 2 else ""
+    if len(title.encode("utf-8")) > 200:
+        fail("название слишком длинное")
+    if any(ord(c) < 32 for c in title):
+        fail("в названии управляющие знаки")
+    sub["title"] = title
+    atomic(f, json.dumps(subs, ensure_ascii=False) + "\n")
+    out({"ok": True, "name": name, "title": title})
+
+
+def cmd_release(a):
+    if len(a) >= 2 and a[0] == "versions" and a[1] in ("steer", "splify2"):
+        d = {"ok": True, "versions": ["2.1.1", "2.1.0"], "names": {"2.1.1": "2.1.1", "2.1.0": "2.1.0"}}
+        d["arch" if a[1] == "steer" else "current"] = "aarch64_stub" if a[1] == "steer" else "26.10.4"
+        out(d)
+    if len(a) >= 5 and a[0] == "fetch":
+        if a[1] not in ("steer", "splify2") or not re.match(r"^[0-9.]+$", a[2]) or not re.match(r"^[A-Za-z0-9._+-]+$", a[3]):
+            fail("недопустимые аргументы")
+        os.makedirs(os.path.dirname(a[4]) or ".", exist_ok=True)
+        open(a[4], "w").write("stub package\n")
+        out({"ok": True})
+    usage()
+
+
+def cmd_pkg(a):
+    if a and a[0] == "info":
+        out({"ok": True, "manager": "apk", "ext": "apk", "noarch": "noarch.apk", "arch": "aarch64_stub", "steer_min": "2.1.0",
+             "versions": {"steer-core": "2.1.0", "splify2": "26.10.4", "luci-app-splify2": ""}})
+    if a and a[0] == "install" and len(a) > 1:
+        files = []
+        for x in a[1:]:
+            if x.startswith("--"):
+                break
+            files.append(x)
+        for f in files:
+            if not (f.startswith("/tmp/") or f.startswith(os.environ.get("STEER_PLUGIN_STATE", "/nonexistent") + "/")):
+                fail("пакет можно ставить только из /tmp или из рабочего каталога плагина")
+            if not os.path.exists(f):
+                fail("нет файла %s" % f)
+        out({"ok": True, "output": "installed (stub)", "removed": False})
+    usage()
+
+
+def cmd_engine_ext(a):
+    if a and a[0] == "modules":
+        want = a[2].split(",") if len(a) > 2 and a[1] == "--want" else []
+        for w in want:
+            if w not in ("vless", "hysteria2", "proxy", "xsteer", "obfs", "tgws"):
+                fail("неизвестный модуль: %s" % w)
+        out({"ok": True, "modules": want})
+    if a and a[0] == "settle":
+        out({"ok": True, "restarted": False})
+    return cmd_engine(a)
+
+
+CALLS = ("vless_nodes", "hysteria2_nodes", "proxy_nodes", "vless_probe", "hysteria2_probe", "proxy_probe", "outbound_probe")
+
+
+def cmd_call(a):
+    if not a:
+        usage()
+    if a[0] not in CALLS:
+        fail("метод %s хост программам плагинов не вызывает" % a[0])
+    sys.stdin.read()
+    if a[0].endswith("_nodes"):
+        out({"output": "", "usable": 1, "nodes": [{"index": 0, "name": "stub node", "type": a[0].split("_")[0]}]})
+    if a[0] == "outbound_probe":
+        out({"output": "stub", "code": "ok", "state": "ok", "ms": 10})
+    out({"output": "", "results": [{"ok": True, "handshake_ms": 5, "ttfb_ms": 5}], "working": 1})
+
+
+def cmd_probe(a):
+    if len(a) < 2 or a[0] not in ("geo", "ident"):
+        usage()
+    if not re.match(r"^[a-zA-Z0-9_-]+$", a[1]):
+        fail("недопустимое имя выхода")
+    if a[0] == "ident":
+        out({"ok": True, "ident": "stub0:1"})
+    out({"ok": True, "output": a[1], "ip": "203.0.113.7", "cc": "DE", "ms": 100, "ident": "stub0:1"})
+
+
+CMDS = {"fetch": cmd_fetch, "fetch-mode": cmd_fetch_mode, "paths": cmd_paths, "spec": cmd_spec, "apply": cmd_apply,
+        "engine": cmd_engine_ext, "settings": cmd_settings, "state": cmd_state, "hook": cmd_hook, "sub": cmd_sub, "call": cmd_call, "probe": cmd_probe, "release": cmd_release, "pkg": cmd_pkg}
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2 or sys.argv[1] not in CMDS:
+        usage()
+    CMDS[sys.argv[1]](sys.argv[2:])

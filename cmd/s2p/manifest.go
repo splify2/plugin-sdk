@@ -107,6 +107,10 @@ type pluginDoc struct {
 		} `json:"settings"`
 		Hide []string `json:"hide"`
 		Deny []string `json:"deny"`
+		// luci.interface (splify2-api 1.1): вид LuCI, которым плагин заменяет главный экран каркаса.
+		Luci *struct {
+			Interface string `json:"interface"`
+		} `json:"luci"`
 	} `json:"splify2"`
 	UI *struct {
 		Entry string   `json:"entry"`

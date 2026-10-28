@@ -46,6 +46,7 @@ const (
 	sdkSteerAPI = "1.2.0"
 	sdkSteerABI = "1.0.0"
 	sdkHostAPI  = "1.0.0"
-	// splify2-api: хуки, задачи, события, псевдонимы и переопределения методов бэкенда splify2.
-	sdkSplify2API = "1.0.0"
+	// splify2-api: хуки, задачи, события, псевдонимы и переопределения методов бэкенда splify2; с 1.1 — интерфейс плагина
+	// (`splify2.luci.interface`) и метод `paths`.
+	sdkSplify2API = "1.1.0"
 )

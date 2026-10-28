@@ -1,0 +1,8 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Example: main screen",
+  "type": "object",
+  "properties": {
+    "greeting": { "type": "string", "title": "Greeting", "description": "The line the screen shows on top.", "default": "Hello" }
+  }
+}

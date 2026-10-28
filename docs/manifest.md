@@ -68,7 +68,7 @@ splify2 `91ac6d2`.
 | `steer-abi` | ABI `.so` в `steerd` ([steer-abi.md](steer-abi.md)) | плагины с `steer.so` | менеджер; `steerd` перед `dlopen` и по полям структуры регистрации |
 | `host-api` | host API панели ([host-api.md](host-api.md)) | плагины с `ui`, `themes`, `type: language` | splify2 перед `import()` |
 | `splify2-api` | точки расширения бэкенда splify2 ([splify2-api.md](splify2-api.md)) | плагины с блоком `splify2` | splify2 |
-| `splify2-luci` | интерфейс каркаса LuCI (зарезервировано, splify2-api 1.1) | плагины с `splify2.luci` | splify2 |
+| `splify2-luci` | интерфейс каркаса LuCI (зарезервировано: `splify2.luci.interface` объявляется осью `splify2-api ^1.1`, ось `splify2-luci` — под `views` и `tabs`) | плагины с `splify2.luci.views`/`tabs` | splify2 |
 | `splify2` | версия панели — только если нужен её собственный rpc-метод | по нужде | splify2 |
 | `steer-core` | **только нижняя граница** `>=X.Y.Z`: «нужна правка ядра, вышедшая в X.Y.Z» | по нужде | менеджер |
 

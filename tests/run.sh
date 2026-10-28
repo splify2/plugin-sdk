@@ -248,6 +248,30 @@ refuse "compat: обращение к каркасу" 'FAIL.*граница API'
 printf '#!/bin/sh\nread -r x\n. "$SPLIFY2_LIB"\n"$SPLIFY2_HOST" settings get nothing >/dev/null\nprintf "{\\"ok\\":true}\\n"\n' > h-bound/hooks/hook
 check "lint --official: службы хоста и библиотека — не обращение к каркасу" "$S" lint --official h-bound
 check "матрица совместимости: строка для splify2-api 1.0.0 и каталог заглушки" sh -c "grep -q '\"splify2-api\": \"1.0.0\"' '$ROOT/tests/compat/matrix.json' && [ -f '$ROOT/tests/compat/splify2-1.0/host.py' ]"
+check "матрица совместимости: строка для splify2-api 1.1.0 и каталог заглушки" sh -c "grep -q '\"splify2-api\": \"1.1.0\"' '$ROOT/tests/compat/matrix.json' && [ -f '$ROOT/tests/compat/splify2-1.1/host.py' ]"
+
+section "splify2-api 1.1: интерфейс плагина (luci.interface), метод paths"
+check "образец splify2-hooks подключается и к splify2-api 1.1" sh "$C" "$ROOT/examples/splify2-hooks" 1.1
+check "образец splify2-interface подключается к splify2-api 1.1" sh "$C" "$ROOT/examples/splify2-interface" 1.1
+check "образец splify2-interface: lint --official чист" "$S" lint --official "$ROOT/examples/splify2-interface"
+check "образец splify2-interface собирается в .s2p" "$S" build "$ROOT/examples/splify2-interface" --unsigned -o s2out
+check "заглушка 1.1: методов paths — frame" sh -c "grep -q '^paths	frame\$' '$ROOT/tests/compat/splify2-1.1/methods.tsv'"
+mutate_i() {  # ИМЯ ПРАВКА-python — копия образца splify2-interface с правкой plugin.json
+    rm -rf "i-$1"; cp -r "$ROOT/examples/splify2-interface" "i-$1"; python3 - "i-$1/plugin.json" "$2" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1])); exec(sys.argv[2]); json.dump(p, open(sys.argv[1], 'w'), ensure_ascii=False, indent=2)
+PY
+}
+mutate_i old "p['compat']['splify2-api'] = '^1.0'"
+refuse "lint: luci.interface при compat ^1.0" 'luci.interface.*1.1' "$S" lint i-old
+refuse "compat: luci.interface при compat ^1.0" 'FAIL.*luci.interface' sh "$C" i-old 1.1
+mutate_i deep "p['splify2']['luci']['interface'] = 'luci/sub/home.js'"
+refuse "lint: luci.interface не прямо в luci/" 'luci.interface' "$S" lint i-deep
+mutate_i gone "p['splify2']['luci']['interface'] = 'luci/nothing.js'"
+refuse "lint: luci.interface — файла нет" 'luci/nothing.js' "$S" lint i-gone
+refuse "compat: luci.interface — файла нет" 'FAIL.*luci.interface' sh "$C" i-gone 1.1
+mutate_i newer "p['compat']['splify2-api'] = '^1.2'"
+refuse "compat: ось ^1.2 на хосте 1.1" 'FAIL.*compat.splify2-api' sh "$C" i-newer 1.1
 
 section "сборка C-плагинов (zig, musl)"
 ARCHES="x86_64 aarch64_cortex-a53 arm_cortex-a9 mipsel_24kc"

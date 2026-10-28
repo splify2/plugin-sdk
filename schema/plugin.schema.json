@@ -935,11 +935,13 @@
               "type": [
                 "string",
                 "null"
-              ]
+              ],
+              "pattern": "^luci/[A-Za-z0-9_-]+\\.js$",
+              "description": "splify2-api 1.1: вид LuCI, которым плагин заменяет главный экран каркаса (так встаёт Andromeda). Файл прямо в luci/ плагина; хост подключает каталог luci/ как view/splify2/p-<id>/ и грузит вид, пока в настройках выбран интерфейс <id> (prefs_set interface)."
             }
           },
           "additionalProperties": true,
-          "description": "Зарезервировано под каркас LuCI (splify2-luci): в splify2-api 1.0 хост принимает поле, но не применяет."
+          "description": "Точки каркаса LuCI. С splify2-api 1.1 действует только `interface`; `views` и `tabs` зарезервированы: хост принимает их, но не применяет."
         },
         "kinds": {
           "type": "array",
