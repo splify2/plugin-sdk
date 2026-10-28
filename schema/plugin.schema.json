@@ -584,6 +584,11 @@
           ],
           "default": "events"
         },
+        "paths": {
+          "type": "boolean",
+          "default": false,
+          "description": "steer-api 1.4: помощник отставляет пути событием health — status выхода несёт paths_down всегда, пустым массивом, когда отставленных нет (docs/steer-api-1.4.md)."
+        },
         "nft": {
           "type": "array",
           "items": {
@@ -699,6 +704,12 @@
             "$ref": "#/$defs/relpath"
           },
           "description": "Файлы nft плагина (docs/steer-api.md, «nft»): наборы и цепочки-слоты; ставятся атомарно с набором правил steer."
+        },
+        "settings": {
+          "enum": [
+            "restart"
+          ],
+          "description": "steer-api 1.4: settings.json плагина входит в подпись перезапуска его помощников и служб; хост, записав настройки, зовёт steer reload (docs/steer-api-1.4.md)."
         },
         "links": {
           "type": "array",

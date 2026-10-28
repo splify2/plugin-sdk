@@ -209,6 +209,41 @@ func (l *linter) compat(p *pluginDoc) {
 			}
 		}
 	}
+	// steer.settings и kinds[].paths (steer-api 1.4): ядро старше их не знает — помощник жил бы со старыми
+	// настройками до своего перезапуска.
+	if p.Steer.Settings != "" && p.Steer.Settings != "restart" {
+		l.errf("steer.settings: только \"restart\", а не %q", p.Steer.Settings)
+	}
+	usesPaths := false
+	for _, k := range p.Steer.Kinds {
+		if k.Paths != nil && *k.Paths {
+			usesPaths = true
+		}
+	}
+	if p.Steer.Settings == "restart" {
+		helpers := len(p.Steer.Services)
+		for _, k := range p.Steer.Kinds {
+			if k.Helper != nil {
+				helpers++
+			}
+		}
+		if helpers == 0 {
+			l.errf("steer.settings: \"restart\" перезапускает помощников и службы плагина, а их нет")
+		}
+		if p.Splify2 == nil || p.Splify2.Settings == nil || p.Splify2.Settings.Schema == "" {
+			l.warnf("steer.settings: \"restart\" без схемы настроек (splify2.settings.schema) — настройки некому записать")
+		}
+	}
+	if (p.Steer.Settings != "" || usesPaths) && has("steer-api") {
+		if rg, err := parseRange(p.Compat["steer-api"]); err == nil {
+			for _, old := range []string{"1.0.0", "1.1.0", "1.2.0", "1.3.0"} {
+				if v, _ := parseVersion(old); rg.contains(v) {
+					l.errf("compat.steer-api %q принимает ядро со steer-api %s, а steer.settings и kinds[].paths исполняет только 1.4 и новее — пишите ^1.4", p.Compat["steer-api"], old[:3])
+					break
+				}
+			}
+		}
+	}
 	if p.Steer.So != nil && !has("steer-abi") {
 		l.errf("compat: есть steer.so, но нет оси steer-abi")
 	}

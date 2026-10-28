@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Заглушка ядра steer 2.1 (steer-api 1.3) — тест совместимости плагина со стороной ядра.
+"""Заглушка ядра steer 2.1 (steer-api 1.4) — тест совместимости плагина со стороной ядра.
 
     sh tests/compat/run.sh --steer <каталог плагина> [2.1]
 
@@ -19,7 +19,9 @@
   7. пути в системе steer.links (steer-api 1.3) — как их ставит менеджер: path абсолютный и под правом fs:,
      не путь ядра; цель — файл плагина (у программ по ссылке — исполняемый); ссылка, поставленная в
      подставной корень, ведёт в файл плагина, а программа по ней запускается (у link в /usr/bin — с
-     `--help` или `version`, код не 126/127).
+     `--help` или `version`, код не 126/127);
+  8. steer.settings и kinds[].paths (steer-api 1.4): settings — только "restart", у плагина есть помощник
+     или служба (перезапускать есть кого) и схема настроек; paths — логическое значение.
 
 Код 0 — плагин подключится к ядру 2.1; иначе — строки FAIL с причиной.
 """
@@ -32,7 +34,7 @@ import sys
 import tempfile
 import time
 
-API = (1, 3)
+API = (1, 4)
 HERE = os.path.dirname(os.path.abspath(__file__))
 fails = []
 passes = 0
@@ -299,6 +301,17 @@ def main():
         except subprocess.TimeoutExpired:
             good, err = True, ""
         ok("подкоманда %s принимает --conf {conf}" % c["name"], good, err.strip()[:200])
+    # steer.settings и kinds[].paths (steer-api 1.4): подпись перезапуска и paths_down.
+    if "settings" in st:
+        sv = st["settings"]
+        ok("steer.settings — «restart»", sv == "restart", repr(sv))
+        n = len(st.get("services", [])) + sum(1 for k in st.get("kinds", []) if k.get("helper"))
+        ok("  у плагина есть помощник или служба — перезапуск по настройкам кого-то касается", n > 0)
+        ok("  и схема настроек (splify2.settings.schema)",
+           bool(((m.get("splify2") or {}).get("settings") or {}).get("schema")))
+    for k in st.get("kinds", []):
+        if "paths" in k:
+            ok("вид %s: paths — логическое" % k.get("name"), isinstance(k["paths"], bool), repr(k["paths"]))
     # steer.links (steer-api 1.3): менеджер ставит их после распаковки, до scripts.postinst.
     links = st.get("links", [])
     perms = [p[3:].rstrip("/") for p in m.get("permissions", []) if p.startswith("fs:")]
