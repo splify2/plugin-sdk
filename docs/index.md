@@ -118,8 +118,9 @@
 - Плагины extended не ставятся сами (`default` в индексе нет): человек выбирает их во вкладке «Плагины».
   Плагины core-plugins помечены `default: true` — их ставит семя пакета `splify2` (`splify2-seed`), затем они
   обновляются из сети.
-- `steer-core` без splify2 (например, только с `box-connector`) знает лишь `splify2`; extended к нему
-  подключается руками: `steer plugin repo add` с адресом из таблицы.
+- `steer-core` без splify2 (например, только с `box-connector`) знает лишь `splify2`. extended к нему подключается
+  файлом `repos.d/splify2-extended-plugins.json` (тем же, что в пакете splify2) — тогда он официальный и проверяется
+  ключами `steer-core`; `steer plugin repo add` подключил бы его как сторонний, со своим ключом и пометкой.
 - Индексы собирает и подписывает CI выпусков (`tools/publish-index.sh`: steer → `splify2/plugins`, splify2 и
   andromeda → `splify2/splify2-core-plugins`, splify2-extended-plugins → свой `gh-pages`) и раз в неделю
   переподписывает по расписанию: индекс живёт 30 дней (`expires`).
