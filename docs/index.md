@@ -91,13 +91,38 @@
 }
 ```
 
-- `official: true` ставит только `steer-core` (файл `splify2.json` из пакета). Ключи официального
-  репозитория — в `/usr/share/steer/keys/` пакета `steer-core`, а не здесь.
+- `official: true` ставят только наши пакеты (таблица ниже). Ключи официальных репозиториев — в
+  `/usr/share/steer/keys/` пакета `steer-core`, а не здесь.
 - `keys` — номера ключей usign (8 байт, 16 знаков hex, как печатает `usign -F`); сами ключи —
   `/etc/steer/plugins/keys/<repo>/<номер>.pub`.
 - `priority` — меньше раньше. Поиск по имени идёт по всем репозиториям в этом порядке.
 - Кэш индекса — `/var/run/steer/plugins/<repo>/index.json` (tmpfs) с `ETag`/`Last-Modified`;
   повторная загрузка — условным запросом.
+
+### Репозитории по умолчанию
+
+Официальных репозиториев три (решение владельца: `steer-core-plugins`, `splify2-core-plugins`,
+`splify2-extended-plugins`). Каждый — ветка `gh-pages` своего репозитория GitHub с зеркалом jsDelivr;
+файлы `repos.d` кладут пакеты, которым они нужны:
+
+| `id` в `repos.d` | Что в нём | Индекс (Pages) | Кладёт | `priority` | Ключ архивов (`key_role`) |
+|---|---|---|---|---|---|
+| `splify2` (steer-core-plugins) | протоколы и общие библиотеки ядра: vless, hysteria2, proxy, xsteer, obfs, warpbox, awg, net1 | `splify2/plugins` | `steer-core` (`splify2.json`) | 0 | `protocols` |
+| `splify2-core-plugins` | «из коробки» splify2: andromeda, lang-ru, lang-en, subscriptions, lists-catalog, node-check, group-check, autoapply, backup, updater | `splify2/splify2-core-plugins` | `splify2` | 10 | `plugins` |
+| `splify2-extended-plugins` | по желанию: recheck, tgws, warpbox-ui и прочее | `splify2/splify2-extended-plugins` | `splify2` | 20 | `plugins` |
+
+- **extended — официальный**, а не сторонний: это наш репозиторий, подписан ключами splify2 (индекс — ключом
+  роли `index`, архивы — `plugins`), и пометка «репозиторий не официальный, splify2 за него не отвечает» (В6)
+  к нему не относится. Её получают только репозитории, подключённые человеком (`official: false`, свой ключ в
+  `/etc/steer/plugins/keys/<repo>/`).
+- Плагины extended не ставятся сами (`default` в индексе нет): человек выбирает их во вкладке «Плагины».
+  Плагины core-plugins помечены `default: true` — их ставит семя пакета `splify2` (`splify2-seed`), затем они
+  обновляются из сети.
+- `steer-core` без splify2 (например, только с `box-connector`) знает лишь `splify2`; extended к нему
+  подключается руками: `steer plugin repo add` с адресом из таблицы.
+- Индексы собирает и подписывает CI выпусков (`tools/publish-index.sh`: steer → `splify2/plugins`, splify2 и
+  andromeda → `splify2/splify2-core-plugins`, splify2-extended-plugins → свой `gh-pages`) и раз в неделю
+  переподписывает по расписанию: индекс живёт 30 дней (`expires`).
 
 ## Отбор версии
 
