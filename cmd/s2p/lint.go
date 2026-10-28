@@ -253,6 +253,9 @@ func (l *linter) permissions(p *pluginDoc, t *tree) {
 		if len(s.Methods.Override) > 0 {
 			need("splify2.override", "splify2.methods.override")
 		}
+		if len(s.Cgi) > 0 {
+			need("splify2.cgi", "splify2.cgi")
+		}
 		if len(s.Hide) > 0 {
 			need("splify2.hide", "splify2.hide")
 		}
@@ -377,6 +380,9 @@ func (p *pluginDoc) refs() []fref {
 		}
 		if s.Luci != nil && s.Luci.Interface != "" {
 			add("splify2.luci.interface", s.Luci.Interface, false)
+		}
+		for _, c := range s.Cgi {
+			add("splify2.cgi", c, true)
 		}
 	}
 	if p.UI != nil {
@@ -1016,6 +1022,7 @@ func sortedKeys[V any](m map[string]V) []string {
 }
 
 var luciInterfaceRe = regexp.MustCompile(`^luci/[A-Za-z0-9_-]+\.js$`)
+var cgiRe = regexp.MustCompile(`^cgi/[A-Za-z0-9][A-Za-z0-9._-]*$`)
 
 // splify2FinalMethod — методы объекта splify2, которые нельзя ни заменить, ни обернуть, ни занять
 // (docs/splify2-api.md, «Защита»).
@@ -1085,6 +1092,22 @@ func (l *linter) splify2(p *pluginDoc) {
 		if r, err := parseRange(p.Compat["splify2-api"]); err == nil {
 			if v0, _ := parseVersion("1.0.0"); r.contains(v0) {
 				l.errf("splify2.luci.interface есть с splify2-api 1.1: ось compat.splify2-api %q включает 1.0.0, а там поля нет", p.Compat["splify2-api"])
+			}
+		}
+	}
+	if len(s.Cgi) > 0 {
+		// Хост ставит ссылку <каталог CGI>/<имя> на файл прямо в cgi/ плагина (splify2-api 1.2).
+		for _, c := range s.Cgi {
+			if !cgiRe.MatchString(c) {
+				l.errf("splify2.cgi: %q — нужен файл прямо в cgi/ (cgi/<имя>)", c)
+			}
+		}
+		if r, err := parseRange(p.Compat["splify2-api"]); err == nil {
+			for _, old := range []string{"1.0.0", "1.1.0"} {
+				if v, _ := parseVersion(old); r.contains(v) {
+					l.errf("splify2.cgi есть с splify2-api 1.2: ось compat.splify2-api %q включает %s, а там поля нет", p.Compat["splify2-api"], old)
+					break
+				}
 			}
 		}
 	}

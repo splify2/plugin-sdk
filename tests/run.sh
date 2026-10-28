@@ -283,6 +283,27 @@ refuse "compat: luci.interface — файла нет" 'FAIL.*luci.interface' sh 
 mutate_i newer "p['compat']['splify2-api'] = '^1.2'"
 refuse "compat: ось ^1.2 на хосте 1.1" 'FAIL.*compat.splify2-api' sh "$C" i-newer 1.1
 
+section "splify2-api 1.2: CGI плагина (splify2.cgi)"
+check "матрица совместимости: строка для splify2-api 1.2.0 и каталог заглушки" sh -c "grep -q '\"splify2-api\": \"1.2.0\"' '$ROOT/tests/compat/matrix.json' && [ -f '$ROOT/tests/compat/splify2-1.2/host.py' ]"
+mutate_c() {  # ИМЯ ПРАВКА-python — копия образца splify2-interface с CGI cgi/gw
+    rm -rf "c-$1"; cp -r "$ROOT/examples/splify2-interface" "c-$1"; mkdir -p "c-$1/cgi"
+    printf '#!/bin/sh\necho gw\n' > "c-$1/cgi/gw"; chmod 0755 "c-$1/cgi/gw"
+    python3 - "c-$1/plugin.json" "$2" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); exec(sys.argv[2])
+json.dump(d, open(p, "w"))
+PY
+}
+mutate_c ok "d['compat']['splify2-api'] = '^1.2'; d.setdefault('permissions', []).append('splify2.cgi'); d['splify2']['cgi'] = ['cgi/gw']"
+check "lint: CGI плагина чист" "$S" lint c-ok
+check "compat 1.2: CGI плагина подключается" sh "$C" c-ok 1.2
+mutate_c noperm "d['compat']['splify2-api'] = '^1.2'; d['splify2']['cgi'] = ['cgi/gw']"
+refuse "lint: CGI без права splify2.cgi" 'splify2.cgi' "$S" lint c-noperm
+mutate_c old "d['compat']['splify2-api'] = '^1.0'; d.setdefault('permissions', []).append('splify2.cgi'); d['splify2']['cgi'] = ['cgi/gw']"
+refuse "lint: CGI при compat ^1.0" 'splify2.cgi.*1.2' "$S" lint c-old
+mutate_c deep "d['compat']['splify2-api'] = '^1.2'; d.setdefault('permissions', []).append('splify2.cgi'); d['splify2']['cgi'] = ['cgi/sub/gw']"
+refuse "lint: CGI не прямо в cgi/" 'splify2.cgi' "$S" lint c-deep
+
 section "сборка C-плагинов (zig, musl)"
 ARCHES="x86_64 aarch64_cortex-a53 arm_cortex-a9 mipsel_24kc"
 [ "${FULL:-}" = 1 ] && ARCHES=$("$S" arches | awk '{print $1}')

@@ -143,7 +143,7 @@ splify2 `91ac6d2`.
 | `http` | сеть наружу из помощников и rpc | этап 8 |
 | `ctl` | команды сокета `steerd` (подписка на события, `status`, `apply`) | этап 8 |
 | `system-packages` | `requires.system` | менеджер |
-| `splify2.hooks`, `splify2.override`, `splify2.hide`, `splify2.deny` | хуки каркаса; замена и обёртка методов; скрытие экранов и видов; убрать метод из ACL ([splify2-api.md](splify2-api.md)) | splify2; `s2p lint` |
+| `splify2.hooks`, `splify2.override`, `splify2.hide`, `splify2.deny`, `splify2.cgi` | хуки каркаса; замена и обёртка методов; скрытие экранов и видов; убрать метод из ACL; свой CGI в каталоге CGI веб-сервера ([splify2-api.md](splify2-api.md), [splify2-api-1.2.md](splify2-api-1.2.md)) | splify2; `s2p lint` |
 | `fs:<путь>` | запись вне каталогов плагина; каждый путь `keep` и `steer.links` обязан иметь такое право | менеджер |
 
 Свои каталоги плагин получает без прав: `/usr/lib/steer/plugins/<id>/` (только чтение),

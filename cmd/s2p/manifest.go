@@ -113,6 +113,8 @@ type pluginDoc struct {
 		Settings *struct {
 			Schema string `json:"schema"`
 		} `json:"settings"`
+		// cgi (splify2-api 1.2): файлы cgi/<имя> плагина, которые хост подключает в каталог CGI веб-сервера.
+		Cgi  []string `json:"cgi"`
 		Hide []string `json:"hide"`
 		Deny []string `json:"deny"`
 		// luci.interface (splify2-api 1.1): вид LuCI, которым плагин заменяет главный экран каркаса.

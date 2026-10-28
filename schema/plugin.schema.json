@@ -319,7 +319,7 @@
     },
     "permission": {
       "type": "string",
-      "pattern": "^(net\\.admin|nft|spec\\.transform|so|http|system-packages|ctl|splify2\\.(hooks|override|hide|deny)|fs:/.*)$"
+      "pattern": "^(net\\.admin|nft|spec\\.transform|so|http|system-packages|ctl|splify2\\.(hooks|override|hide|deny|cgi)|fs:/.*)$"
     },
     "resources": {
       "type": "object",
@@ -945,6 +945,14 @@
             }
           },
           "additionalProperties": true
+        },
+        "cgi": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^cgi/[A-Za-z0-9][A-Za-z0-9._-]*$"
+          },
+          "description": "splify2-api 1.2: CGI плагина (так встаёт шлюз Desktop API). Файл прямо в cgi/ плагина, исполняемый; хост ставит ссылку <каталог CGI веб-сервера>/<имя> на него, пока плагин включён. Нужно право splify2.cgi."
         },
         "luci": {
           "type": "object",
