@@ -331,13 +331,13 @@ import json, sys
 p = json.load(open(sys.argv[1])); exec(sys.argv[2]); json.dump(p, open(sys.argv[1], 'w'), ensure_ascii=False, indent=2)
 PY
 }
-check "steer-api: плагин с ^1.3 подключается к ядру 2.1 (1.4)" sh "$C" --steer ax-ok
+check "steer-api: плагин с ^1.3 подключается к ядру 2.1 (1.5)" sh "$C" --steer ax-ok
 mutate_ax rng "p['compat']['steer-api'] = '>=1.1 <2'"
-check "steer-api: диапазон «>=1.1 <2» принимает 1.4" sh "$C" --steer ax-rng
+check "steer-api: диапазон «>=1.1 <2» принимает 1.5" sh "$C" --steer ax-rng
 mutate_ax alt "p['compat']['steer-api'] = '^2.0 || ^1.2'"
-check "steer-api: диапазон «^2.0 || ^1.2» принимает 1.4" sh "$C" --steer ax-alt
-mutate_ax new "p['compat']['steer-api'] = '^1.5'"
-refuse "steer-api: ^1.5 на ядре 1.4 — отказ" 'FAIL.*compat.steer-api' sh "$C" --steer ax-new
+check "steer-api: диапазон «^2.0 || ^1.2» принимает 1.5" sh "$C" --steer ax-alt
+mutate_ax new "p['compat']['steer-api'] = '^1.6'"
+refuse "steer-api: ^1.6 на ядре 1.5 — отказ" 'FAIL.*compat.steer-api' sh "$C" --steer ax-new
 mutate_ax maj "p['compat']['steer-api'] = '^2.0'"
 refuse "steer-api: другой major — отказ" 'FAIL.*compat.steer-api' sh "$C" --steer ax-maj
 mutate_ax noax "del p['compat']['steer-api']; p['compat']['host-api'] = '^1.0'"
