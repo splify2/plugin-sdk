@@ -63,7 +63,7 @@ splify2 26.11 говорит splify2-api **1.1** (SDK 1.3.0). Это приба�
 ## 3. Версии
 
 - `PLUGIN_SPLIFY2_API` хоста — `1.1.0`; файл `/usr/share/splify2/compat/splify2-api` пишет сборка пакета.
-- Строка `tests/compat/matrix.json`: SDK 1.3.0 — splify2 26.11.0 — splify2-api 1.1.0, host-api 1.0.0, steer-api 1.2.0.
+- Строка `tests/compat/matrix.json`: SDK 1.3.0 — splify2 26.11.0 — splify2-api 1.1.0, host-api 1.0.0, steer-api 1.3.0.
 - `s2p lint` сверяет `compat.splify2-api` с 1.1.0.
 
 ## 4. Семя плагинов splify2

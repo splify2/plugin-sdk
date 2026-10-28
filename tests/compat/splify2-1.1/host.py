@@ -11,6 +11,9 @@
 import json, os, re, shutil, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, ".."))
+from semver import range_has  # noqa: E402
+HOST_API = (1, 0, 0)  # host-api панели (docs/host-api.md)
 API = "1.1.0"
 HOOKS = ["pre_spec_set", "post_spec_set", "pre_apply", "post_apply", "post_apply_fail", "heal",
          "backup_sections", "support_report", "purge", "plugin_changed", "sub_fields"]
@@ -45,15 +48,7 @@ def methods():
 
 def range_ok(r):
     """Диапазон плагина включает версию хоста (minor добавляет: ^1.2 на хосте 1.1 не подключится)."""
-    r = r.strip()
-    m = re.match(r"^(\^|~|=|>=)?\s*(\d+)(?:\.(\d+))?(?:\.(\d+))?$", r)
-    if not m:
-        return False
-    op, major, minor = m.group(1), int(m.group(2)), int(m.group(3) or 0)
-    hmaj, hmin = (int(x) for x in API.split(".")[:2])
-    if op == ">=":
-        return (major, minor) <= (hmaj, hmin)
-    return major == hmaj and minor <= hmin
+    return range_has(r, tuple(int(x) for x in API.split(".")))
 
 
 def fixture(name, pid, spec):
@@ -132,11 +127,13 @@ def main(pdir):
     m = json.load(open(pm, encoding="utf-8"))
     pid = m["id"]
     sp = m.get("splify2")
+    compat = m.get("compat", {})
     print("== %s (splify2-api %s)" % (pid, API))
+    if "host-api" in compat:
+        check(range_has(compat["host-api"], HOST_API), "compat.host-api %r включает %s" % (compat["host-api"], ".".join(map(str, HOST_API))))
     if sp is None:
         ok("блока splify2 нет — плагину нечего проверять")
         return
-    compat = m.get("compat", {})
     check("splify2-api" in compat and range_ok(compat["splify2-api"]),
           "compat.splify2-api %r включает %s" % (compat.get("splify2-api"), API))
     perms = set(m.get("permissions", []))
@@ -297,7 +294,7 @@ def main(pdir):
                     check(bool(pr.get("title")) and isinstance(pr.get("title"), str), "настройка %s: у схемы есть title" % k)
 
         # --- граница API: тот же поиск запретного, что у `s2p lint --official`
-        s2p = os.path.join(HERE, "..", "..", "..", "bin", "s2p")
+        s2p = os.environ.get("S2P") or os.path.join(HERE, "..", "..", "..", "bin", "s2p")
         if os.access(s2p, os.X_OK):
             r = subprocess.run([s2p, "lint", "--official", pdir], capture_output=True, text=True)
             check(r.returncode == 0, "граница API: s2p lint --official%s" % ("" if r.returncode == 0 else ": " + (r.stderr or r.stdout).strip().splitlines()[0]))

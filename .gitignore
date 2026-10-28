@@ -5,3 +5,7 @@ build/
 .s2p-stage/
 *.tgz
 *.sec
+
+# образцы и шаблоны хранят свои bin/ (программы плагина)
+!examples/**/bin/
+!templates/**/bin/
