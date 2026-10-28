@@ -33,7 +33,10 @@ import tempfile
 import time
 
 API = (1, 3)
+ABI = (1, 0)  # steer-abi: ось плагинов-.so (docs/steer-abi.md)
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, ".."))
+from semver import range_has  # noqa: E402
 fails = []
 passes = 0
 
@@ -48,34 +51,8 @@ def ok(what, cond, why=""):
         print("FAIL " + what + (("\n     " + why) if why else ""))
 
 
-def range_ok(rng):
-    """Подмножество semver, которым пишут compat: ^M.m, ~M.m, >=, <, M.m, через || и пробел."""
-    def ver(s):
-        p = [int(x) for x in s.strip().lstrip("v").split(".")[:3]]
-        return tuple(p + [0] * (3 - len(p)))
-    have = (API[0], API[1], 0)
-    for alt in rng.split("||"):
-        good = True
-        for t in alt.split():
-            if t.startswith("^"):
-                v = ver(t[1:])
-                good &= have >= v and have[0] == v[0]
-            elif t.startswith("~"):
-                v = ver(t[1:])
-                good &= have >= v and have[:2] == v[:2]
-            elif t.startswith(">="):
-                good &= have >= ver(t[2:])
-            elif t.startswith("<="):
-                good &= have <= ver(t[2:])
-            elif t.startswith(">"):
-                good &= have > ver(t[1:])
-            elif t.startswith("<"):
-                good &= have < ver(t[1:])
-            else:
-                good &= have == ver(t)
-        if good:
-            return True
-    return False
+def range_ok(rng, have=None):
+    return range_has(rng, have or (API[0], API[1], 0))
 
 
 def sample(name, sch, tmp):
@@ -162,6 +139,8 @@ def main():
     print("steer-2.1: плагин %s %s" % (pid, m.get("version", "?")))
     rng = m.get("compat", {}).get("steer-api", "")
     ok("compat.steer-api «%s» принимает %d.%d" % (rng, API[0], API[1]), bool(rng) and range_ok(rng))
+    if "steer-abi" in m.get("compat", {}):
+        ok("compat.steer-abi «%s» принимает %d.%d" % (m["compat"]["steer-abi"], ABI[0], ABI[1]), range_ok(m["compat"]["steer-abi"], ABI))
     st = m.get("steer", {})
     tmp = tempfile.mkdtemp(prefix="steer21-")
     for kind in st.get("kinds", []):
