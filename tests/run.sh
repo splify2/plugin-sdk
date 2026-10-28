@@ -190,7 +190,7 @@ for f in craft/path-*; do
 done
 
 section "совместимость с splify2-api (заглушка хоста)"
-C="$ROOT/tests/compat/run.sh"
+C="$ROOT/tests/compat/run.sh"; export S2P="$S"
 check "образец splify2-hooks подключается к splify2-api 1.0" sh "$C" "$ROOT/examples/splify2-hooks" 1.0
 check "образец собирается в .s2p" "$S" build "$ROOT/examples/splify2-hooks" --unsigned -o s2out
 check "официальные плагины каркаса (если рядом) подключаются" sh -c "
@@ -262,6 +262,17 @@ check "матрица совместимости: строка для splify2-ap
 
 section "splify2-api 1.1: интерфейс плагина (luci.interface), метод paths"
 check "образец splify2-hooks подключается и к splify2-api 1.1" sh "$C" "$ROOT/examples/splify2-hooks" 1.1
+check "матрица совместимости: последняя строка — те же версии осей, что зашиты в s2p (arches.go)" python3 - "$ROOT" <<'PY'
+import json, re, sys
+r = sys.argv[1]
+last = json.load(open(r + "/tests/compat/matrix.json"))["rows"][-1]
+go = open(r + "/cmd/s2p/arches.go").read()
+want = {k: re.search(r'%s\s*=\s*"([^"]+)"' % c, go).group(1) for k, c in
+        (("steer-api", "sdkSteerAPI"), ("host-api", "sdkHostAPI"), ("splify2-api", "sdkSplify2API"))}
+bad = [k for k, v in want.items() if last[k] != v]
+if bad:
+    sys.exit("matrix.json и arches.go расходятся: " + ", ".join("%s %s != %s" % (k, last[k], want[k]) for k in bad))
+PY
 check "образец splify2-interface подключается к splify2-api 1.1" sh "$C" "$ROOT/examples/splify2-interface" 1.1
 check "образец splify2-interface: lint --official чист" "$S" lint --official "$ROOT/examples/splify2-interface"
 check "образец splify2-interface собирается в .s2p" "$S" build "$ROOT/examples/splify2-interface" --unsigned -o s2out
@@ -282,6 +293,74 @@ refuse "lint: luci.interface — файла нет" 'luci/nothing.js' "$S" lint 
 refuse "compat: luci.interface — файла нет" 'FAIL.*luci.interface' sh "$C" i-gone 1.1
 mutate_i newer "p['compat']['splify2-api'] = '^1.2'"
 refuse "compat: ось ^1.2 на хосте 1.1" 'FAIL.*compat.splify2-api' sh "$C" i-newer 1.1
+
+section "splify2-api 1.2: CGI плагина (splify2.cgi)"
+check "матрица совместимости: строка для splify2-api 1.2.0 и каталог заглушки" sh -c "grep -q '\"splify2-api\": \"1.2.0\"' '$ROOT/tests/compat/matrix.json' && [ -f '$ROOT/tests/compat/splify2-1.2/host.py' ]"
+mutate_c() {  # ИМЯ ПРАВКА-python — копия образца splify2-interface с CGI cgi/gw
+    rm -rf "c-$1"; cp -r "$ROOT/examples/splify2-interface" "c-$1"; mkdir -p "c-$1/cgi"
+    printf '#!/bin/sh\necho gw\n' > "c-$1/cgi/gw"; chmod 0755 "c-$1/cgi/gw"
+    python3 - "c-$1/plugin.json" "$2" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); exec(sys.argv[2])
+json.dump(d, open(p, "w"))
+PY
+}
+mutate_c ok "d['compat']['splify2-api'] = '^1.2'; d.setdefault('permissions', []).append('splify2.cgi'); d['splify2']['cgi'] = ['cgi/gw']"
+check "lint: CGI плагина чист" "$S" lint c-ok
+check "compat 1.2: CGI плагина подключается" sh "$C" c-ok 1.2
+mutate_c noperm "d['compat']['splify2-api'] = '^1.2'; d['splify2']['cgi'] = ['cgi/gw']"
+refuse "lint: CGI без права splify2.cgi" 'splify2.cgi' "$S" lint c-noperm
+mutate_c old "d['compat']['splify2-api'] = '^1.0'; d.setdefault('permissions', []).append('splify2.cgi'); d['splify2']['cgi'] = ['cgi/gw']"
+refuse "lint: CGI при compat ^1.0" 'splify2.cgi.*1.2' "$S" lint c-old
+mutate_c deep "d['compat']['splify2-api'] = '^1.2'; d.setdefault('permissions', []).append('splify2.cgi'); d['splify2']['cgi'] = ['cgi/sub/gw']"
+refuse "lint: CGI не прямо в cgi/" 'splify2.cgi' "$S" lint c-deep
+
+section "оси совместимости: заглушки хостов ловят несовместимый плагин (steer-api, steer-abi, host-api, splify2-api)"
+# Плагин со ссылкой в системе: манифест и один исполняемый файл — хватает заглушке ядра (steer.links, ось steer-api).
+rm -rf ax-ok; mkdir -p ax-ok/bin
+printf '#!/bin/sh\nexit 0\n' > ax-ok/bin/ax; chmod +x ax-ok/bin/ax
+cat > ax-ok/plugin.json <<'JSON'
+{"schema": 1, "id": "ax", "version": "1.0.0", "name": "ax", "description": "оси", "license": "MIT",
+ "compat": {"steer-api": "^1.3"}, "arch": "all",
+ "permissions": ["fs:/usr/bin/ax"],
+ "steer": {"links": [{"path": "/usr/bin/ax", "target": "bin/ax"}]}}
+JSON
+mutate_ax() {  # ИМЯ ПРАВКА-python — копия ax-ok с правкой plugin.json
+    rm -rf "ax-$1"; cp -r ax-ok "ax-$1"; python3 - "ax-$1/plugin.json" "$2" <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1])); exec(sys.argv[2]); json.dump(p, open(sys.argv[1], 'w'), ensure_ascii=False, indent=2)
+PY
+}
+check "steer-api: плагин с ^1.3 подключается к ядру 2.1 (1.4)" sh "$C" --steer ax-ok
+mutate_ax rng "p['compat']['steer-api'] = '>=1.1 <2'"
+check "steer-api: диапазон «>=1.1 <2» принимает 1.4" sh "$C" --steer ax-rng
+mutate_ax alt "p['compat']['steer-api'] = '^2.0 || ^1.2'"
+check "steer-api: диапазон «^2.0 || ^1.2» принимает 1.4" sh "$C" --steer ax-alt
+mutate_ax new "p['compat']['steer-api'] = '^1.5'"
+refuse "steer-api: ^1.5 на ядре 1.4 — отказ" 'FAIL.*compat.steer-api' sh "$C" --steer ax-new
+mutate_ax maj "p['compat']['steer-api'] = '^2.0'"
+refuse "steer-api: другой major — отказ" 'FAIL.*compat.steer-api' sh "$C" --steer ax-maj
+mutate_ax noax "del p['compat']['steer-api']; p['compat']['host-api'] = '^1.0'"
+refuse "steer-api: оси нет — отказ" 'FAIL.*compat.steer-api' sh "$C" --steer ax-noax
+mutate_ax abi "p['compat']['steer-abi'] = '^2.0'"
+refuse "steer-abi: другой major — отказ" 'FAIL.*compat.steer-abi' sh "$C" --steer ax-abi
+mutate_ax abiok "p['compat']['steer-abi'] = '^1.0'"
+check "steer-abi: ^1.0 принимается" sh "$C" --steer ax-abiok
+mutate_ax tgt "p['steer']['links'][0]['target'] = 'bin/nope'"
+refuse "steer.links: цели нет в плагине — отказ" 'FAIL' sh "$C" --steer ax-tgt
+mutate_ax core "p['steer']['links'][0]['path'] = '/usr/sbin/steer-x'; p['permissions'] = ['fs:/usr/sbin/steer-x']"
+refuse "steer.links: путь ядра — отказ" 'FAIL.*ядр' sh "$C" --steer ax-core
+mutate_ax perm "p['permissions'] = []"
+refuse "steer.links: без права fs: — отказ" 'FAIL.*fs:' sh "$C" --steer ax-perm
+# host-api (UI, темы, языки) — заглушка хоста splify2 читает ось у любого плагина, с блоком splify2 или без него.
+rm -rf hx; cp -r "$T/theme" hx
+check "host-api: шаблон темы (^1.0) подключается к хосту splify2 1.1" sh "$C" hx 1.1
+python3 - hx/plugin.json <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1])); p['compat']['host-api'] = '^2.0'; json.dump(p, open(sys.argv[1], 'w'), ensure_ascii=False, indent=2)
+PY
+refuse "host-api: ^2.0 на хосте 1.0 — отказ" 'FAIL.*compat.host-api' sh "$C" hx 1.1
+refuse "host-api: ^2.0 и на заглушке 1.0" 'FAIL.*compat.host-api' sh "$C" hx 1.0
 
 section "сборка C-плагинов (zig, musl)"
 ARCHES="x86_64 aarch64_cortex-a53 arm_cortex-a9 mipsel_24kc"

@@ -319,7 +319,7 @@
     },
     "permission": {
       "type": "string",
-      "pattern": "^(net\\.admin|nft|spec\\.transform|so|http|system-packages|ctl|splify2\\.(hooks|override|hide|deny)|fs:/.*)$"
+      "pattern": "^(net\\.admin|nft|spec\\.transform|so|http|system-packages|ctl|splify2\\.(hooks|override|hide|deny|cgi)|fs:/.*)$"
     },
     "resources": {
       "type": "object",
@@ -587,7 +587,7 @@
         "paths": {
           "type": "boolean",
           "default": false,
-          "description": "steer-api 1.4: помощник отставляет пути событием health — status выхода несёт paths_down всегда, пустым массивом, когда отставленных нет (docs/steer-api-1.4.md)."
+          "description": "steer-api 1.5: помощник отставляет пути событием health — status выхода несёт paths_down всегда, пустым массивом, когда отставленных нет (docs/steer-api-1.5.md)."
         },
         "nft": {
           "type": "array",
@@ -705,11 +705,22 @@
           },
           "description": "Файлы nft плагина (docs/steer-api.md, «nft»): наборы и цепочки-слоты; ставятся атомарно с набором правил steer."
         },
+        "platform": {
+          "type": "object",
+          "description": "steer-api 1.4: настройки платформы, которые просит включённый плагин (docs/steer-api-1.4.md): поле метки, приоритет правил выходов, возврат решения, каналы на сам роутер. Менеджер пишет их в /etc/steer/plugins/platform.env.",
+          "properties": {
+            "mark_field": { "type": "string", "pattern": "^0x[0-9a-fA-F]{1,8}$" },
+            "rule_pref": { "type": "integer", "minimum": 1, "maximum": 32765 },
+            "mark_restore": { "type": "boolean" },
+            "router_self": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
         "settings": {
           "enum": [
             "restart"
           ],
-          "description": "steer-api 1.4: settings.json плагина входит в подпись перезапуска его помощников и служб; хост, записав настройки, зовёт steer reload (docs/steer-api-1.4.md)."
+          "description": "steer-api 1.5: settings.json плагина входит в подпись перезапуска его помощников и служб; хост, записав настройки, зовёт steer reload (docs/steer-api-1.5.md)."
         },
         "links": {
           "type": "array",
@@ -956,6 +967,14 @@
             }
           },
           "additionalProperties": true
+        },
+        "cgi": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^cgi/[A-Za-z0-9][A-Za-z0-9._-]*$"
+          },
+          "description": "splify2-api 1.2: CGI плагина (так встаёт шлюз Desktop API). Файл прямо в cgi/ плагина, исполняемый; хост ставит ссылку <каталог CGI веб-сервера>/<имя> на него, пока плагин включён. Нужно право splify2.cgi."
         },
         "luci": {
           "type": "object",

@@ -25,7 +25,7 @@ type kindDoc struct {
 	Check  *prog    `json:"check"`
 	Expand *prog    `json:"expand"`
 	Nft    []string `json:"nft"`
-	Paths  *bool    `json:"paths"` // steer-api 1.4: помощник отставляет пути (paths_down в status всегда)
+	Paths  *bool    `json:"paths"` // steer-api 1.5: помощник отставляет пути (paths_down в status всегда)
 	Res    struct {
 		Ports  int `json:"ports"`
 		Queues int `json:"queues"`
@@ -76,9 +76,10 @@ type pluginDoc struct {
 			PreApply *prog `json:"pre_apply"`
 			Event    *prog `json:"event"`
 		} `json:"hooks"`
-		Nft      []string  `json:"nft"`
-		Links    []linkDoc `json:"links"`
-		Settings string    `json:"settings"` // steer-api 1.4: "restart" — settings.json в подписи перезапуска
+		Nft      []string       `json:"nft"`
+		Links    []linkDoc      `json:"links"`
+		Platform map[string]any `json:"platform"`
+		Settings string         `json:"settings"` // steer-api 1.5: "restart" — settings.json в подписи перезапуска
 		So       *struct {
 			Path string `json:"path"`
 		} `json:"so"`
@@ -115,6 +116,8 @@ type pluginDoc struct {
 		Settings *struct {
 			Schema string `json:"schema"`
 		} `json:"settings"`
+		// cgi (splify2-api 1.2): файлы cgi/<имя> плагина, которые хост подключает в каталог CGI веб-сервера.
+		Cgi  []string `json:"cgi"`
 		Hide []string `json:"hide"`
 		Deny []string `json:"deny"`
 		// luci.interface (splify2-api 1.1): вид LuCI, которым плагин заменяет главный экран каркаса.

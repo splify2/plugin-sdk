@@ -77,9 +77,9 @@ splify2 `91ac6d2`.
   оставлена нижняя граница — [open.md](open.md), О-3.
 - Что даёт ядро, оно говорит само: `steer version --json` →
   `{"core":"2.1.0","api":"1.0","abi":"1.0"}`; splify2 — `host-api` в `build-id.txt` и в `plugins_list`.
-- Правила версий осей одинаковы: **minor добавляет, major ломает**. Ядро с `api 1.4` исполняет
-  плагины `^1.0`…`^1.4`; плагин `^1.5` на нём не ставится, а отказ называет числа («vless 2.2 требует
-  steer-api ^1.5, у ядра 1.4»).
+- Правила версий осей одинаковы: **minor добавляет, major ломает**. Ядро с `api 1.3` исполняет
+  плагины `^1.0`…`^1.3`; плагин `^1.4` на нём не ставится, а отказ называет числа («vless 2.2 требует
+  steer-api ^1.4, у ядра 1.3»).
 - Сегодняшняя сверка версий — строгое равенство: `mod_hello` (`steer/src/daemon/supd.c:323-340`)
   отвергает модуль, если `ver` из `hello` не равен `steer_engine_version()`. Для плагинов она
   заменяется сверкой `api` (см. [steer-api.md](steer-api.md), «hello»).
@@ -143,7 +143,7 @@ splify2 `91ac6d2`.
 | `http` | сеть наружу из помощников и rpc | этап 8 |
 | `ctl` | команды сокета `steerd` (подписка на события, `status`, `apply`) | этап 8 |
 | `system-packages` | `requires.system` | менеджер |
-| `splify2.hooks`, `splify2.override`, `splify2.hide`, `splify2.deny` | хуки каркаса; замена и обёртка методов; скрытие экранов и видов; убрать метод из ACL ([splify2-api.md](splify2-api.md)) | splify2; `s2p lint` |
+| `splify2.hooks`, `splify2.override`, `splify2.hide`, `splify2.deny`, `splify2.cgi` | хуки каркаса; замена и обёртка методов; скрытие экранов и видов; убрать метод из ACL; свой CGI в каталоге CGI веб-сервера ([splify2-api.md](splify2-api.md), [splify2-api-1.2.md](splify2-api-1.2.md)) | splify2; `s2p lint` |
 | `fs:<путь>` | запись вне каталогов плагина; каждый путь `keep` и `steer.links` обязан иметь такое право | менеджер |
 
 Свои каталоги плагин получает без прав: `/usr/lib/steer/plugins/<id>/` (только чтение),
@@ -311,13 +311,21 @@ uci), остаётся после снятия и уходит с `--purge`. К�
 [steer-api-1.3.md](steer-api-1.3.md); образец — [`examples/box-connector`](../examples/box-connector/plugin.json)
 (sing-box для podkop и forkop).
 
-### `steer.settings` и `kinds[].paths` (steer-api 1.4)
+### `steer.platform` (steer-api 1.4)
+
+Настройки платформы, которые просит включённый плагин: `mark_field` (поле метки steer), `rule_pref` (приоритет
+правил выходов), `mark_restore`, `router_self`. Менеджер пишет их в `/etc/steer/plugins/platform.env`, его читает
+каждый процесс ядра; смена поднимает службу ядра заново. Два плагина с разными значениями — действует стоявший
+раньше. Нужен `compat.steer-api: "^1.4"`. Подробно — [steer-api-1.4.md](steer-api-1.4.md); образец —
+[`examples/box-connector`](../examples/box-connector/plugin.json).
+
+### `steer.settings` и `kinds[].paths` (steer-api 1.5)
 
 `"settings": "restart"` — настройки плагина (`conf/<id>/settings.json`) входят в подпись перезапуска всех его
 помощников и служб: хост, записав их, зовёт `steer reload`, и ядро поднимает помощников с новыми настройками сразу, без
 паузы перезапуска; плагин читает файл один раз при старте и за ним не следит. `kinds[].paths: true` — помощник
 отставляет пути событием `health`, и `status` выхода несёт `paths_down` всегда. Оба требуют
-`compat.steer-api: "^1.4"`. Подробно — [steer-api-1.4.md](steer-api-1.4.md); образец — плагин `tgws`.
+`compat.steer-api: "^1.5"`. Подробно — [steer-api-1.5.md](steer-api-1.5.md); образец — плагин `tgws`.
 
 ## `rpc`
 

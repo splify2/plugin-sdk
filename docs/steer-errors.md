@@ -49,10 +49,12 @@
 
 ## Что ещё без кода
 
-Тексты без слова остаются прежними (`error` без `code`): спека формата v1 (JSON `schema: 1`), подготовка спеки хуками плагинов
-(`plugprep`), построение набора правил (`compile`), события (`spec-error` в потоке событий — только `message`), причины
-остановки помощников (`last_down`), отказы разбора командной строки и подкоманд протоколов (`vless-nodes`, `proxy-probe`, `dns-probe`
-и другие, кроме перечисленных ниже), причины внутри `why` (тексты из чужих библиотек и сообщения плагинов).
+Тексты без слова остаются прежними (`error` без `code`): отказы разбора командной строки и подкоманд протоколов (`vless-nodes`,
+`proxy-probe`, `dns-probe` и другие, кроме `xsteer-link`), причины внутри `why` (тексты из чужих библиотек и сообщения плагинов),
+причина `down` от самого помощника (`last_down` без `last_down_code`). Спека формата v1 (`spec.v1_error`), построение правил
+(`compile.error`) и подготовка спеки (`plugprep.error`) несут запасное слово: текст отказа целиком — в подстановке `1`. Событие
+`spec-error`, ответы `check`/`apply`/`reload`/`status` на непрочитанную спеку и `helper-down` несут `code` и `args`
+(у `helper-down` и `last_down` слово есть только у причин демона: `supd.*`).
 
 ## Список кодов
 
@@ -230,6 +232,7 @@
 | `spec.upstream_twice` | `1`, `2` | {1}: сервер «{2}» указан дважды |
 | `spec.url_and_servers` | `1` | {1}: url и servers вместе — это либо сервер (url), либо группа серверов (servers) |
 | `spec.url_rejected` | `1`, `2`, `3` | {1}: «{2}» — {3} |
+| `spec.v1_error` | `1` | {1} (спека формата v1: текст отказа целиком) |
 | `spec.v1_in_yaml` | — | спека v1 пишется JSON-объектом ({"schema": 1, …}); спека YAML — это v2, и начинается она с version: 2 |
 | `spec.version_unsupported` | `1` | version {1} не поддерживается (эта сборка понимает 2) |
 | `spec.want_bool` | `1` | {1} — true или false |
@@ -368,6 +371,18 @@
 | `plugin.key_revoked` | — | этот ключ отозван |
 | `plugin.key_unreadable` | — | ключ не распознан |
 | `plugin.key_write_failed` | — | не записать ключ |
+| `plugin.link_busy` | `id`, `path` | {id} не встаёт: {path} уже есть, и поставил его не менеджер плагинов |
+| `plugin.link_core_path` | `id`, `path` | {id}: ссылка {path} — путь ядра steer, плагину его не дать |
+| `plugin.link_create` | `path`, `why` | не поставить ссылку {path}: {why} |
+| `plugin.link_exists` | `path` | {path} уже есть, и поставил его не менеджер плагинов |
+| `plugin.link_mode` | `id`, `path`, `mode` | {id}: ссылка {path} — неизвестный mode «{mode}» |
+| `plugin.link_owned_by_package` | `id`, `path`, `pkg` | {id} не встаёт: {path} принадлежит пакету {pkg} |
+| `plugin.link_path` | `id`, `path` | {id}: путь ссылки «{path}» не абсолютный путь файла |
+| `plugin.link_perm` | `id`, `path` | {id}: ссылка {path} без права fs: |
+| `plugin.link_taken` | `path`, `other`, `repo` | путь {path} уже занят плагином {other} из {repo} |
+| `plugin.link_target_missing` | `id`, `path`, `target` | {id}: цели ссылки {path} ({target}) нет в плагине |
+| `plugin.link_target_outside` | `id`, `path` | {id}: цель ссылки {path} вне каталога плагина |
+| `plugin.link_write` | `path`, `why` | не записать {path}: {why} |
 | `plugin.manifest_file_twice` | `id`, `path` | MANIFEST {id}: файл {path} назван дважды |
 | `plugin.manifest_header` | `id` | MANIFEST {id}: заголовок не «s2p 1 <id> <версия> <арх>» |
 | `plugin.manifest_line` | `id`, `line` | MANIFEST {id}: строка не разбирается: {line} |
@@ -381,6 +396,7 @@
 | `plugin.name_taken_service_file` | `name`, `owner` | служба {name} уже есть у {owner} из файла |
 | `plugin.needed_by_outputs` | `id`, `outputs` | плагин {id} нужен выходам: {outputs}; снять всё равно — с --force |
 | `plugin.needed_by_plugins` | `id`, `users` | плагин {id} нужен плагинам {users}; снять всё равно — с --force |
+| `plugin.needs_package_after` | `id`, `pkg`, `tx` | {id} не встаёт: нужен пакет {pkg} — поставьте его после установки {tx} |
 | `plugin.needs_plugin` | `id`, `dep`, `range` | {id} требует плагин {dep} {range} — поставьте его |
 | `plugin.net_and_seed` | `net`, `seed` | {net}; из семени: {seed} |
 | `plugin.no_archive_url` | `id`, `version` | у архива {id} {version} в индексе нет адреса |
@@ -452,6 +468,7 @@
 | Код | Подстановки | Текст (русский, как в журнале) |
 |---|---|---|
 | `ctl.bad_body_length` | — | длина тела — десятичное число байт |
+| `ctl.body_too_large` | `1` | тело больше {1} МиБ |
 | `ctl.bad_plugin_name` | — | недопустимое имя плагина в теле |
 | `ctl.bad_request` | — | Запрос составлен неверно |
 | `ctl.body_plugin_event` | — | тело — объект JSON с id и state |
@@ -465,12 +482,14 @@
 | `ctl.file_in_use` | — | файл упомянут в сохранённой спеке — сначала примените спеку без него |
 | `ctl.file_remove_failed` | — | не удалось удалить файл |
 | `ctl.file_write_failed` | — | не удалось записать файл (нет места?) |
+| `ctl.helper_missing` | `1` | helper: у выхода {1} нет помощника под этим демоном |
 | `ctl.in_use` | — | Файл используется |
 | `ctl.internal` | — | Внутренняя ошибка ядра steer |
 | `ctl.line_too_long` | — | строка запроса длиннее 512 байт |
 | `ctl.lists_dir_failed` | — | не удалось создать каталог списков |
 | `ctl.lists_dir_not_dir` | — | каталог списков — не каталог |
 | `ctl.lists_path_long` | — | слишком длинный путь каталога списков |
+| `ctl.lists_files_max` | `1` | в каталоге списков уже {1} файлов — предел от бесконечной заливки; уберите ненужные (rm-file) |
 | `ctl.lists_tmp_failed` | — | не удалось создать временный файл в каталоге списков |
 | `ctl.lists_total_big` | — | файлы списков заняли бы больше 128 МиБ — уберите ненужные (rm-file) |
 | `ctl.need_body_length` | — | нужна длина тела последним словом |
@@ -488,6 +507,66 @@
 | `ctl.unknown_command` | — | такой команды нет |
 | `ctl.wait_failed` | — | не удалось дождаться ядра |
 | `ctl.wrong_word_count` | — | не то число слов у команды |
+
+### Построение набора правил (`compile.*`)
+
+| Код | Подстановки | Текст (русский, как в журнале) |
+|---|---|---|
+| `compile.error` | `1` | {1} |
+| `compile.no_memory` | — | Не хватило памяти на построение правил |
+| `compile.group_name_twice` | `1` | два разных набора каналов получили одно имя {1} — укоротите или разведите имена выходов |
+| `compile.list_unreadable` | `1` | {1}: список канала не читается |
+| `compile.group_no_output` | `1` | группа каналов {1} ссылается на несуществующий выход |
+| `compile.group_bad_uid` | `1` | группа {1}: негодный UID |
+| `compile.override_port_realip` | `1` | группа {1}: override_port у списка — только с dns.mode fakeip, а у канала realip |
+
+### Подготовка спеки хуками плагинов (`plugprep.*`)
+
+| Код | Подстановки | Текст (русский, как в журнале) |
+|---|---|---|
+| `plugprep.error` | `1` | {1} |
+| `plugprep.hook_args` | `1`, `2` | плагин {1}: {2} |
+| `plugprep.hook_pipe` | — | не создать трубы для хука |
+| `plugprep.hook_fork` | — | не запустить хук: fork отказал |
+| `plugprep.hook_timeout` | `1`, `2`, `3` | плагин {1}: {2} не уложился в {3} с |
+| `plugprep.hook_not_ready` | `1`, `2` | плагин {1}: {2} не готов (код 3) — повторите позже |
+| `plugprep.hook_not_started` | `1`, `2`, `3` | плагин {1}: {2} не запустился: {3} |
+| `plugprep.hook_failed` | `1`, `2`, `3` | плагин {1}: {2} упал (код {3}) |
+| `plugprep.expand_refused` | `1`, `2`, `3` | плагин {1}: разворот {2} — {3} |
+| `plugprep.expand_unreadable` | `1`, `2`, `3` | плагин {1}: разворот {2} — ответ не разобран: {3} |
+| `plugprep.expand_no_self` | `1`, `2` | плагин {1}: разворот {2} — в ответе нет self |
+| `plugprep.expand_self_again` | `1`, `2`, `3` | плагин {1}: разворот {2} — self сам вида с разворотом ({3}): разворот однократный |
+| `plugprep.expand_bad_name` | `1`, `2`, `3`, `4` | плагин {1}: разворот {2} — outputs.{3}: {4} |
+| `plugprep.expand_name_taken` | `1`, `2`, `3` | плагин {1}: разворот {2} — outputs.{3}: такой выход уже есть в спеке |
+| `plugprep.expand_name_made` | `1`, `2`, `3`, `4` | плагин {1}: разворот {2} — outputs.{3}: уже заведён плагином {4} |
+| `plugprep.expand_invalid` | `1`, `2`, `3` | плагин {1}: разворот {2} — {3} |
+| `plugprep.not_parsed` | `1` | подготовленная спека не разобрана: {1} |
+| `plugprep.pre_apply_refused` | `1`, `2` | плагин {1}: {2} |
+| `plugprep.pre_apply_unreadable` | `1`, `2` | плагин {1}: pre_apply вернул спеку, которая не читается: {2} |
+| `plugprep.write_failed` | `1`, `2` | не записать подготовленную спеку в {1}: {2} |
+
+### Причины остановки помощников (`supd.*`: `last_down_code`, `last_down_args`, `code` и `args` в `helper-down`)
+
+| Код | Подстановки | Текст (русский, как в журнале) |
+|---|---|---|
+| `supd.hello_no_api` | `plugin` | плагин {plugin} прислал hello без версии steer-api (api) |
+| `supd.hello_api_mismatch` | `1`, `2`, `plugin` | плагин {plugin} говорит steer-api {1}, ядро — {2} |
+| `supd.hello_wrong_mod` | `1`, `2`, `plugin` | плагин {plugin} представился плагином {1}, а запущен как {2} |
+| `supd.no_hello` | `plugin` | плагин {plugin} не назвал версию (первое сообщение — не hello, steer-api.md 2.1) |
+| `supd.no_plugin_program` | `1` | нет программы плагина {1} — переставить плагин |
+| `supd.out_removed` | — | выход убран из спеки |
+| `supd.restart_unresponsive` | — | перезапуск: выход не отвечает |
+| `supd.restart_params` | — | перезапуск: параметры выхода изменились |
+| `supd.exited` | `1` | процесс вышел (код {1}) |
+| `supd.killed` | `1` | процесс убит (сигнал {1}) |
+
+### `steer dns-log` (`dnslog.*`)
+
+| Код | Подстановки | Текст (русский, как в журнале) |
+|---|---|---|
+| `dnslog.path_long` | — | dns-log: путь сокета журнала слишком длинный |
+| `dnslog.socket` | `1`, `2` | dns-log: {1}: {2} |
+| `dnslog.no_reply` | — | dns-log: резолвер не отдал журнал |
 
 ### `steer xsteer-link` (`xslink.*`)
 

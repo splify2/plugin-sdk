@@ -8,7 +8,7 @@
   "license": "GPL-3.0-only",
   "homepage": "https://github.com/splify2/steer-box-connector",
   "compat": {
-    "steer-api": "^1.3"
+    "steer-api": "^1.4"
   },
   "arch": [
     "aarch64_cortex-a53",
@@ -43,6 +43,12 @@
     "fs:/usr/share/nftables.d/chain-pre/forward/50-steer-box.nft"
   ],
   "steer": {
+    "platform": {
+      "mark_field": "0x000000ff",
+      "rule_pref": 100,
+      "mark_restore": true,
+      "router_self": true
+    },
     "links": [
       { "path": "/usr/bin/sing-box", "target": "bin/sing-box" },
       { "path": "/etc/init.d/sing-box", "target": "init/sing-box" },

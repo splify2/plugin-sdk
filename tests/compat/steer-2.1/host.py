@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Заглушка ядра steer 2.1 (steer-api 1.4) — тест совместимости плагина со стороной ядра.
+"""Заглушка ядра steer 2.1 (steer-api 1.3) — тест совместимости плагина со стороной ядра.
 
     sh tests/compat/run.sh --steer <каталог плагина> [2.1]
 
@@ -19,9 +19,7 @@
   7. пути в системе steer.links (steer-api 1.3) — как их ставит менеджер: path абсолютный и под правом fs:,
      не путь ядра; цель — файл плагина (у программ по ссылке — исполняемый); ссылка, поставленная в
      подставной корень, ведёт в файл плагина, а программа по ней запускается (у link в /usr/bin — с
-     `--help` или `version`, код не 126/127);
-  8. steer.settings и kinds[].paths (steer-api 1.4): settings — только "restart", у плагина есть помощник
-     или служба (перезапускать есть кого) и схема настроек; paths — логическое значение.
+     `--help` или `version`, код не 126/127).
 
 Код 0 — плагин подключится к ядру 2.1; иначе — строки FAIL с причиной.
 """
@@ -34,8 +32,11 @@ import sys
 import tempfile
 import time
 
-API = (1, 4)
+API = (1, 5)
+ABI = (1, 0)  # steer-abi: ось плагинов-.so (docs/steer-abi.md)
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(HERE, ".."))
+from semver import range_has  # noqa: E402
 fails = []
 passes = 0
 
@@ -50,34 +51,8 @@ def ok(what, cond, why=""):
         print("FAIL " + what + (("\n     " + why) if why else ""))
 
 
-def range_ok(rng):
-    """Подмножество semver, которым пишут compat: ^M.m, ~M.m, >=, <, M.m, через || и пробел."""
-    def ver(s):
-        p = [int(x) for x in s.strip().lstrip("v").split(".")[:3]]
-        return tuple(p + [0] * (3 - len(p)))
-    have = (API[0], API[1], 0)
-    for alt in rng.split("||"):
-        good = True
-        for t in alt.split():
-            if t.startswith("^"):
-                v = ver(t[1:])
-                good &= have >= v and have[0] == v[0]
-            elif t.startswith("~"):
-                v = ver(t[1:])
-                good &= have >= v and have[:2] == v[:2]
-            elif t.startswith(">="):
-                good &= have >= ver(t[2:])
-            elif t.startswith("<="):
-                good &= have <= ver(t[2:])
-            elif t.startswith(">"):
-                good &= have > ver(t[1:])
-            elif t.startswith("<"):
-                good &= have < ver(t[1:])
-            else:
-                good &= have == ver(t)
-        if good:
-            return True
-    return False
+def range_ok(rng, have=None):
+    return range_has(rng, have or (API[0], API[1], 0))
 
 
 def sample(name, sch, tmp):
@@ -164,6 +139,8 @@ def main():
     print("steer-2.1: плагин %s %s" % (pid, m.get("version", "?")))
     rng = m.get("compat", {}).get("steer-api", "")
     ok("compat.steer-api «%s» принимает %d.%d" % (rng, API[0], API[1]), bool(rng) and range_ok(rng))
+    if "steer-abi" in m.get("compat", {}):
+        ok("compat.steer-abi «%s» принимает %d.%d" % (m["compat"]["steer-abi"], ABI[0], ABI[1]), range_ok(m["compat"]["steer-abi"], ABI))
     st = m.get("steer", {})
     tmp = tempfile.mkdtemp(prefix="steer21-")
     for kind in st.get("kinds", []):
@@ -301,7 +278,7 @@ def main():
         except subprocess.TimeoutExpired:
             good, err = True, ""
         ok("подкоманда %s принимает --conf {conf}" % c["name"], good, err.strip()[:200])
-    # steer.settings и kinds[].paths (steer-api 1.4): подпись перезапуска и paths_down.
+    # steer.settings и kinds[].paths (steer-api 1.5): подпись перезапуска и paths_down.
     if "settings" in st:
         sv = st["settings"]
         ok("steer.settings — «restart»", sv == "restart", repr(sv))
