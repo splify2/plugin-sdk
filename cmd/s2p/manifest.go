@@ -75,9 +75,10 @@ type pluginDoc struct {
 			PreApply *prog `json:"pre_apply"`
 			Event    *prog `json:"event"`
 		} `json:"hooks"`
-		Nft   []string  `json:"nft"`
-		Links []linkDoc `json:"links"`
-		So    *struct {
+		Nft      []string       `json:"nft"`
+		Links    []linkDoc      `json:"links"`
+		Platform map[string]any `json:"platform"`
+		So       *struct {
 			Path string `json:"path"`
 		} `json:"so"`
 	} `json:"steer"`

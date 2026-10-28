@@ -72,7 +72,7 @@ s2p verify repo/index.json --pub index.pub --base repo
 | [docs/manifest.md](docs/manifest.md) · [schema/plugin.schema.json](schema/plugin.schema.json) | манифест `plugin.json` |
 | [docs/index.md](docs/index.md) · [schema/index.schema.json](schema/index.schema.json) | индекс репозитория, отбор версии |
 | [docs/s2p.md](docs/s2p.md) | архив, подпись, раскладка, установка, откат, автообновление |
-| [docs/steer-api.md](docs/steer-api.md) | steer-api v1: программы, evline, хуки, сокет, nft, ресурсы |
+| [docs/steer-api.md](docs/steer-api.md) | steer-api v1: программы, evline, хуки, сокет, nft, ресурсы; прибавки 1.1–1.4 — `docs/steer-api-1.*.md` (1.4 — `steer.platform`) |
 | [docs/steer-errors.md](docs/steer-errors.md) | коды отказов ядра: `code` и `args` рядом с текстом `error`, как каркас их переводит |
 | [docs/splify2-api.md](docs/splify2-api.md) | splify2-api v1: хуки каркаса, задачи, события, псевдонимы и переопределения методов, службы хоста и граница API; тесты совместимости `tests/compat` |
 | [docs/steer-abi.md](docs/steer-abi.md) · [include/steer/plugin.h](include/steer/plugin.h) | steer-abi v1: `.so` в `steerd` |

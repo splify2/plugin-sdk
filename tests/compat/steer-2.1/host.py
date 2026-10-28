@@ -32,7 +32,7 @@ import sys
 import tempfile
 import time
 
-API = (1, 3)
+API = (1, 4)
 HERE = os.path.dirname(os.path.abspath(__file__))
 fails = []
 passes = 0

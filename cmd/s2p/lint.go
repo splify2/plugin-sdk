@@ -209,6 +209,24 @@ func (l *linter) compat(p *pluginDoc) {
 			}
 		}
 	}
+	// steer.platform исполняет менеджер ядра с steer-api 1.4 (docs/steer-api-1.4.md).
+	if len(p.Steer.Platform) > 0 && has("steer-api") {
+		if rg, err := parseRange(p.Compat["steer-api"]); err == nil {
+			for _, old := range []string{"1.0.0", "1.1.0", "1.2.0", "1.3.0"} {
+				if v, _ := parseVersion(old); rg.contains(v) {
+					l.errf("compat.steer-api %q принимает ядро со steer-api %s, а steer.platform исполняет только 1.4 и новее — пишите ^1.4", p.Compat["steer-api"], old[:3])
+					break
+				}
+			}
+		}
+	}
+	for k := range p.Steer.Platform {
+		switch k {
+		case "mark_field", "rule_pref", "mark_restore", "router_self":
+		default:
+			l.errf("steer.platform.%s: такой настройки нет (mark_field, rule_pref, mark_restore, router_self)", k)
+		}
+	}
 	if p.Steer.So != nil && !has("steer-abi") {
 		l.errf("compat: есть steer.so, но нет оси steer-abi")
 	}

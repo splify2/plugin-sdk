@@ -311,6 +311,14 @@ uci), остаётся после снятия и уходит с `--purge`. К�
 [steer-api-1.3.md](steer-api-1.3.md); образец — [`examples/box-connector`](../examples/box-connector/plugin.json)
 (sing-box для podkop и forkop).
 
+### `steer.platform` (steer-api 1.4)
+
+Настройки платформы, которые просит включённый плагин: `mark_field` (поле метки steer), `rule_pref` (приоритет
+правил выходов), `mark_restore`, `router_self`. Менеджер пишет их в `/etc/steer/plugins/platform.env`, его читает
+каждый процесс ядра; смена поднимает службу ядра заново. Два плагина с разными значениями — действует стоявший
+раньше. Нужен `compat.steer-api: "^1.4"`. Подробно — [steer-api-1.4.md](steer-api-1.4.md); образец —
+[`examples/box-connector`](../examples/box-connector/plugin.json).
+
 ## `rpc`
 
 ```json
