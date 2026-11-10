@@ -315,6 +315,25 @@ refuse "lint: CGI при compat ^1.0" 'splify2.cgi.*1.2' "$S" lint c-old
 mutate_c deep "d['compat']['splify2-api'] = '^1.2'; d.setdefault('permissions', []).append('splify2.cgi'); d['splify2']['cgi'] = ['cgi/sub/gw']"
 refuse "lint: CGI не прямо в cgi/" 'splify2.cgi' "$S" lint c-deep
 
+section "splify2-api 1.3: методы awg_list, awg_put, awg_del (файлы выходов kind: awg)"
+check "матрица совместимости: строка для splify2-api 1.3.0 и каталог заглушки" sh -c "grep -q '\"splify2-api\": \"1.3.0\"' '$ROOT/tests/compat/matrix.json' && [ -f '$ROOT/tests/compat/splify2-1.3/host.py' ]"
+for mth in awg_list awg_put awg_del; do
+    check "заглушка 1.3: метод $mth — frame" sh -c "grep -q '^$mth	frame\$' '$ROOT/tests/compat/splify2-1.3/methods.tsv'"
+    check "заглушка 1.2: метода $mth нет" sh -c "! grep -q '^$mth	' '$ROOT/tests/compat/splify2-1.2/methods.tsv'"
+done
+check "заглушка 1.3: остальная таблица методов — как в 1.2" sh -c "grep -v '^awg_' '$ROOT/tests/compat/splify2-1.3/methods.tsv' | sed 1d > t13; sed 1d '$ROOT/tests/compat/splify2-1.2/methods.tsv' | cmp -s - t13"
+check "образец splify2-hooks подключается и к splify2-api 1.3" sh "$C" "$ROOT/examples/splify2-hooks" 1.3
+check "образец splify2-interface подключается к splify2-api 1.3" sh "$C" "$ROOT/examples/splify2-interface" 1.3
+check "compat 1.3: CGI плагина подключается" sh "$C" c-ok 1.3
+mutate_h awgover "p['compat']['splify2-api'] = '^1.3'; p['splify2']['methods']['override']['awg_put'] = {'prog': 'rpc/example', 'mode': 'replace'}"
+check "compat 1.3: замена awg_put — метод каркаса" sh "$C" h-awgover 1.3
+refuse "compat: ось ^1.3 на хосте 1.2" 'FAIL.*compat.splify2-api' sh "$C" h-awgover 1.2
+mutate_h awgold "p['splify2']['methods']['override']['awg_put'] = {'prog': 'rpc/example', 'mode': 'replace'}"
+refuse "compat 1.2: замена awg_put — такого метода нет" 'FAIL.*awg_put' sh "$C" h-awgold 1.2
+mutate_h awgalias "p['splify2']['methods']['alias']['awg_del'] = 'hello'"
+refuse "compat 1.3: псевдоним на awg_del — имя занято" 'awg_del.*занято' sh "$C" h-awgalias 1.3
+check "s2p version — версия SDK из последней строки матрицы" sh -c "[ \"\$('$S' version | awk '{print \$2}')\" = \"\$(python3 -c \"import json; print(json.load(open('$ROOT/tests/compat/matrix.json'))['rows'][-1]['sdk'])\")\" ]"
+
 section "оси совместимости: заглушки хостов ловят несовместимый плагин (steer-api, steer-abi, host-api, splify2-api)"
 # Плагин со ссылкой в системе: манифест и один исполняемый файл — хватает заглушке ядра (steer.links, ось steer-api).
 rm -rf ax-ok; mkdir -p ax-ok/bin
@@ -533,7 +552,7 @@ else
     PA="$ROOT/packages/plugin-api"
     rm -rf pa && mkdir pa && cp -r "$PA/src" "$PA/scripts" "$PA/package.json" "$PA/tsconfig.json" "$PA/README.md" "$PA/LICENSE" pa/
     if (cd pa && npm install --no-audit --no-fund && npm run build && npm test) >"$LOG" 2>&1; then pass "plugin-api: npm run build, npm test"; else fail "plugin-api: сборка"; fi
-    check "plugin-api: npm pack — dist, README, LICENSE, package.json и больше ничего" sh -c "cd pa && npm pack --dry-run --json 2>/dev/null | python3 -c \"import json,sys; f=sorted(x['path'] for x in json.load(sys.stdin)[0]['files']); print(f); sys.exit(0 if f==['LICENSE','README.md','dist/index.d.ts','dist/index.js','dist/vite.d.ts','dist/vite.js','package.json'] else 1)\""
+    check "plugin-api: npm pack — dist, README, LICENSE, package.json и больше ничего" sh -c "cd pa && npm pack --dry-run --json --ignore-scripts 2>/dev/null | python3 -c \"import json,sys; f=sorted(x['path'] for x in json.load(sys.stdin)[0]['files']); print(f); sys.exit(0 if f==['LICENSE','README.md','dist/index.d.ts','dist/index.js','dist/vite.d.ts','dist/vite.js','package.json'] else 1)\""
     rm -rf ui-t && "$S" new ui ui-t --id ui-t >/dev/null
     sed -i "s|\"@splify2/plugin-api\": \"^1.0.0\"|\"@splify2/plugin-api\": \"file:$W/pa\"|" ui-t/package.json
     if (cd ui-t && npm install --no-audit --no-fund && npm run check) >"$LOG" 2>&1; then pass "ui: npm install, tsc (типы @splify2/plugin-api)"; else fail "ui: npm install и tsc"; fi

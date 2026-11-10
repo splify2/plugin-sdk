@@ -74,7 +74,7 @@ s2p verify repo/index.json --pub index.pub --base repo
 | [docs/s2p.md](docs/s2p.md) | архив, подпись, раскладка, установка, откат, автообновление |
 | [docs/steer-api.md](docs/steer-api.md) | steer-api v1: программы, evline, хуки, сокет, nft, ресурсы; прибавки 1.1–1.4 — `docs/steer-api-1.*.md` (1.4 — `steer.platform`) |
 | [docs/steer-errors.md](docs/steer-errors.md) | коды отказов ядра: `code` и `args` рядом с текстом `error`, как каркас их переводит |
-| [docs/splify2-api.md](docs/splify2-api.md) | splify2-api v1: хуки каркаса, задачи, события, псевдонимы и переопределения методов, службы хоста и граница API; тесты совместимости `tests/compat` |
+| [docs/splify2-api.md](docs/splify2-api.md) | splify2-api v1: хуки каркаса, задачи, события, псевдонимы и переопределения методов, службы хоста и граница API; прибавки 1.1–1.3 — `docs/splify2-api-1.*.md` (1.3 — методы `awg_*`); тесты совместимости `tests/compat` |
 | [docs/steer-abi.md](docs/steer-abi.md) · [include/steer/plugin.h](include/steer/plugin.h) | steer-abi v1: `.so` в `steerd` |
 | [docs/host-api.md](docs/host-api.md) · [packages/plugin-api](packages/plugin-api) | host API панели, типы `@splify2/plugin-api` |
 | [docs/spec-fields.md](docs/spec-fields.md) · [docs/migration-2.1.md](docs/migration-2.1.md) | поля спеки для ядра; переход на steer-core 2.1.0 |

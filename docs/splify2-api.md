@@ -1,6 +1,6 @@
 # splify2-api v1: бэкенд splify2 для плагинов
 
-Версия **1.1** (что добавлено к 1.0 — [splify2-api-1.1.md](splify2-api-1.1.md): `splify2.luci.interface`, метод `paths`). Тег совместимости — `compat.splify2-api` ([manifest.md](manifest.md)). Хост пишет свою версию API
+Версия **1.3**. Прибавки minor: [1.1](splify2-api-1.1.md) — `splify2.luci.interface`, метод `paths`; [1.2](splify2-api-1.2.md) — `splify2.cgi`; [1.3](splify2-api-1.3.md) — методы `awg_list`, `awg_put`, `awg_del`. Тег совместимости — `compat.splify2-api` ([manifest.md](manifest.md)). Хост пишет свою версию API
 в ответ `plugins_list` (поле `splify2_api`) и в `SPLIFY2_API` (major, число) каждой программе плагина. Правило
 версий то же, что у [steer-api](steer-api.md) и [host-api](host-api.md): **minor добавляет** (новый хук, поле,
 событие), **major ломает**. Плагин `^1.x` исполняется хостом с API `1.y`, если `y ≥ x`; блок `splify2` плагина с
@@ -70,6 +70,7 @@
 | `methods` | псевдонимы и переопределения методов, раздел 5 |
 | `settings.schema` | схема настроек плагина (JSON Schema, путь внутри плагина). Одна схема — форма в каркасе LuCI и форма в Andromeda. Значения лежат в `conf/<id>/settings.json`, читают и пишут их методы каркаса `plugin_settings_get` и `plugin_settings_set`; у плагина с `steer.settings: "restart"` ([steer-api-1.5.md](steer-api-1.5.md)) хост после записи зовёт `steer reload` — помощники плагина поднимаются с новыми настройками сразу |
 | `luci.interface` | с 1.1: вид LuCI, которым плагин заменяет главный экран ([splify2-api-1.1.md](splify2-api-1.1.md)) |
+| `cgi` | с 1.2: CGI плагина в каталоге CGI веб-сервера, право `splify2.cgi` ([splify2-api-1.2.md](splify2-api-1.2.md)) |
 | `luci.views`, `luci.tabs`, `kinds`, `hide`, `deny` | **зарезервированы** под каркас LuCI (`splify2-luci`): схема их принимает, хост не применяет (раздел 10) |
 
 Права (`permissions`, [manifest.md](manifest.md)): `splify2.hooks` — любой хук; `splify2.override` —

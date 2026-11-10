@@ -1,0 +1,1 @@
+{"api":1,"hook":"backup_sections","plugin":"@ID@","ctx":{"op":"check","sections":{"state":"строка"}}}

@@ -106,7 +106,7 @@ zig или zlib не ошибка плагина, но индекс (`s2p index`
   песочница.
 - **Имена глобальны**: `id`, виды, подкоманды и службы занимают одно пространство на роутере. Подкоманды
   ядра (`apply`, `status`, `plugin` …) заняты.
-- **Версии осей.** SDK 1.3.0 говорит `steer-api` 1.3, `steer-abi` 1.0, `host-api` 1.0, `splify2-api` 1.1
+- **Версии осей.** SDK 1.6.0 говорит `steer-api` 1.5, `steer-abi` 1.0, `host-api` 1.0, `splify2-api` 1.3
   (`s2p` держит их в одном месте, строки — в `tests/compat/matrix.json`). Пишите самую раннюю ось, которой
   хватает: `^1.0`, а если нужно новое — его версию (`steer.links` — `^1.3`, `splify2.luci.interface` — `splify2-api ^1.1`).
 - **Тексты для человека** — состояние и действие, без технических пояснений. Переводы — `i18n/<язык>.json`,
@@ -240,7 +240,8 @@ export default defineConfig({ plugins: [splify2Plugin()] })
 
 ```sh
 sh tests/compat/run.sh --steer ./myplug          # ядро steer 2.1: ось steer-api, хуки видов, помощник, службы, steer.links
-sh tests/compat/run.sh ./myplug 1.1              # splify2 с splify2-api 1.1: хуки, задачи, события, методы, host-api
+sh tests/compat/run.sh ./myplug 1.3              # splify2 с splify2-api 1.3: хуки, задачи, события, методы
+sh tests/compat/run.sh ./myplug 1.1              # он же на хосте 1.1: хуки, задачи, события, методы, host-api
 sh tests/compat/run.sh ./myplug 1.0              # он же на хосте 1.0 (плагину ^1.0 нужно, чтобы работал и там)
 s2p lint --official ./myplug                     # граница API: плагин не лезет в внутренности каркаса
 ```
