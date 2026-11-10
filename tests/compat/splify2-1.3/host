@@ -191,7 +191,8 @@ def cmd_settings(a):
     out({"ok": True})
 
 
-STATE_FILES = re.compile(r"^(spec|sub|select|options|sub\.[A-Za-z0-9_]+|xsteer\.[A-Za-z0-9_.:@-]+)$")
+# С 1.3 — и файлы своих туннелей (выходы kind: awg): awg.<имя>, имя — как у выхода, не с точки.
+STATE_FILES = re.compile(r"^(spec|sub|select|options|sub\.[A-Za-z0-9_]+|xsteer\.[A-Za-z0-9_.:@-]+|awg\.[A-Za-z0-9_-][A-Za-z0-9_.-]*)$")
 
 
 def cmd_state(a):
@@ -215,7 +216,8 @@ def cmd_state(a):
                 shutil.copyfile(os.path.join(d, n), os.path.join(store, n))
             out({"ok": True, "spec": "spec" in names, "sub": "sub" in names,
                  "subs": len([n for n in names if n.startswith("sub.")]),
-                 "xsteer": len([n for n in names if n.startswith("xsteer.")]), "select": "select" in names})
+                 "xsteer": len([n for n in names if n.startswith("xsteer.")]),
+                 "awg": len([n for n in names if n.startswith("awg.")]), "select": "select" in names})
         out({"ok": True})
     usage()
 
