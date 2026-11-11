@@ -137,7 +137,7 @@ vless подписан ключом 3f1a…, такого ключа у ядра
 и копии настроек (`mode: conf`), [steer-api-1.3.md](steer-api-1.3.md).
 
 Ссылки splify2 (ставит splify2 по событию `plugin`, а не менеджер ядра):
-`/www/luci-static/resources/splify2/plugins/<id>` → `…/<id>/ui`, `/usr/libexec/rpcd/splify2-p-<id>` →
+каталог `/www/luci-static/resources/splify2/plugins/<id>/` со ссылками `ui` → `…/<id>/ui` и `i18n` → `…/<id>/i18n` (панель берёт `<id>/<ui.entry>` и `<id>/i18n/<язык>.json`; остальное в плагине наружу не раздаётся), `/usr/libexec/rpcd/splify2-p-<id>` →
 общий диспетчер, `/usr/share/rpcd/acl.d/splify2-p-<id>.json`.
 
 ### `state.json`
