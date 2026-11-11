@@ -16,6 +16,7 @@ var arches = []archInfo{
 	{"mips_24kc", "mips-linux-musl", "mips32r2+soft_float", "/lib/ld-musl-mips-sf.so.1", elf.EM_MIPS, elf.ELFCLASS32, elf.ELFDATA2MSB},
 	{"aarch64_cortex-a53", "aarch64-linux-musl", "cortex_a53", "/lib/ld-musl-aarch64.so.1", elf.EM_AARCH64, elf.ELFCLASS64, elf.ELFDATA2LSB},
 	{"aarch64_cortex-a72", "aarch64-linux-musl", "cortex_a72", "/lib/ld-musl-aarch64.so.1", elf.EM_AARCH64, elf.ELFCLASS64, elf.ELFDATA2LSB},
+	{"aarch64_cortex-a73", "aarch64-linux-musl", "cortex_a73", "/lib/ld-musl-aarch64.so.1", elf.EM_AARCH64, elf.ELFCLASS64, elf.ELFDATA2LSB},
 	{"aarch64_generic", "aarch64-linux-musl", "baseline", "/lib/ld-musl-aarch64.so.1", elf.EM_AARCH64, elf.ELFCLASS64, elf.ELFDATA2LSB},
 	{"arm_cortex-a7_neon-vfpv4", "arm-linux-musleabihf", "cortex_a7", "/lib/ld-musl-armhf.so.1", elf.EM_ARM, elf.ELFCLASS32, elf.ELFDATA2LSB},
 	{"arm_cortex-a9", "arm-linux-musleabi", "cortex_a9", "/lib/ld-musl-arm.so.1", elf.EM_ARM, elf.ELFCLASS32, elf.ELFDATA2LSB},

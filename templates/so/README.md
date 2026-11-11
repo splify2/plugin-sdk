@@ -6,7 +6,7 @@
 
 ```sh
 s2p keygen -o dev
-s2p build . --key dev.sec -o dist                   # .so под 10 архитектур (zig, musl)
+s2p build . --key dev.sec -o dist                   # .so под 11 архитектур (zig, musl)
 s2p build . --arch aarch64_cortex-a53 --key dev.sec -o dist
 s2p lint dist/example-so-0.1.0-aarch64_cortex-a53.s2p
 ```

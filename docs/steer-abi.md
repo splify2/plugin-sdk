@@ -216,7 +216,7 @@ const struct steer_plugin_v1 *steer_plugin_v1_entry(uint16_t host_major, uint16_
 ## Сборка
 
 `s2p build` (SDK) по шагу `cc` из `s2p.json` проекта вызывает `s2p cc --kind so`, и тот собирает `.so`
-zig-ом под 10 архитектур (`steer/build/arches.sh:7-18`) с
+zig-ом под 11 архитектур (`steer/build/arches.sh`) с
 `-fPIC -fvisibility=hidden -Wl,--version-script=<экспорт> -Wl,-z,defs -Wl,-soname,<имя файла>`; файл версий
 `{ global: steer_plugin_v1_entry; local: *; }` SDK пишет сам. Загрузчик из `interp_of` (`arches.sh:22-32`)
 ставится у программ, а не у `.so`. Проверка готового `.so` — `s2p lint`: машина и разрядность ELF под

@@ -2,7 +2,7 @@
 # Стенд SDK плагинов: lint, build, sign, verify, index на шаблонах.
 #
 #   sh tests/run.sh          полный прогон; сборка C — x86_64, aarch64_cortex-a53, arm и mips
-#   FULL=1 sh tests/run.sh   сборка C под все 10 архитектур
+#   FULL=1 sh tests/run.sh   сборка C под все 11 архитектур
 #   NO_UI=1 sh tests/run.sh  без npm (шаблон интерфейса и пакет plugin-api)
 #
 # Нужны: go, python3 (только стенд: враждебные архивы), file, tar, gzip; zig 0.13 или docker с образом
@@ -431,7 +431,7 @@ else
     check "s2p cc --kind so" "$S" cc --arch x86_64 --kind so -o direct/x.so "$T/so/src/example.c"
     check "s2p cc --kind helper --evline" "$S" cc --arch aarch64_cortex-a53 --kind helper --evline -o direct/h "$T/helper/src/main.c"
     check "s2p cc --kind lib (libs2p-evline.a)" "$S" cc --arch x86_64 --kind lib --evline -o direct/libs2p-evline.a
-    check "s2p cc --arch all: 10 файлов" sh -c "'$S' cc --arch all --kind helper --evline -o 'direct/all/%a/h' '$T/helper/src/main.c' >/dev/null && [ \$(ls direct/all | wc -l) -eq 10 ]"
+    check "s2p cc --arch all: 11 файлов" sh -c "'$S' cc --arch all --kind helper --evline -o 'direct/all/%a/h' '$T/helper/src/main.c' >/dev/null && [ \$(ls direct/all | wc -l) -eq 11 ]"
     check "libs2p-evline.a — архив ar" sh -c "file direct/libs2p-evline.a | grep -q 'ar archive'"
     # lint машинного кода: DT_NEEDED на libsteer отвергается, на libs2p-* — только при зависимости и с RUNPATH
     mkdir -p stub; printf '__attribute__((visibility("default"))) const void *steer_plugin_v1_entry(unsigned short a, unsigned short b) { (void)a; (void)b; return 0; }\n' > stub/stub.c

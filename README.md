@@ -24,7 +24,7 @@
   повторная сборка плагина с машинным кодом даёт тот же архив
 - **Подпись usign/signify (Ed25519)** в формате `usign`; несколько блоков в одном файле — для ротации
   ключей. Стенд сверяет подпись независимо через `openssl`, а где есть `usign` — и им
-- **C под 10 архитектур OpenWrt через zig (musl)**, без SDK OpenWrt: программа-помощник и `.so` по
+- **C под 11 архитектур OpenWrt через zig (musl)**, без SDK OpenWrt: программа-помощник и `.so` по
   [steer-abi](docs/steer-abi.md)
 - **Заготовки**: программа-помощник, `.so`, интерфейс на vite, тема, перевод — каждая собирается в `.s2p`
 - **`s2p lint`** смотрит на манифест, файлы, права, теги совместимости, словари и сам машинный код:
@@ -89,7 +89,7 @@ s2p verify repo/index.json --pub index.pub --base repo
 
 ```sh
 sh tests/run.sh               # lint, build, sign, verify, index; C под x86_64, aarch64_cortex-a53, arm, mips
-FULL=1 sh tests/run.sh        # C под все 10 архитектур
+FULL=1 sh tests/run.sh        # C под все 11 архитектур
 NO_UI=1 sh tests/run.sh       # без npm
 ```
 
