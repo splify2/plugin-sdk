@@ -466,6 +466,19 @@ p = json.load(open(d + '/plugin.json')); p['requires'] = {'plugins': {'net1': '^
 c = json.load(open(d + '/s2p.json')); c['cc'][0]['requires'] = []; json.dump(c, open(d + '/s2p.json', 'w'))
 PY
     refuse "build: libs2p-* без RUNPATH отвергнут" 'RUNPATH' "$S" build m-net --arch x86_64 --key dev.sec -o cc4
+    # Общая библиотека криптографии ядра (steer 2.1.4): только с осью compat.steer-crypto.
+    check "заглушка libsteer-wolfssl.so.5.9.4" "$S" cc --arch x86_64 --kind so -o stub/libsteer-wolfssl.so.5.9.4 stub/stub.c
+    rm -rf m-cry; cp -r "$T/helper" m-cry; cp stub/libsteer-wolfssl.so.5.9.4 m-cry/
+    python3 - m-cry/s2p.json <<'PY'
+import json, sys
+c = json.load(open(sys.argv[1])); c['cc'][0]['link'] = ['libsteer-wolfssl.so.5.9.4']; json.dump(c, open(sys.argv[1], 'w'))
+PY
+    refuse "build: libsteer-wolfssl без compat.steer-crypto отвергнут" 'steer-crypto' "$S" build m-cry --arch x86_64 --key dev.sec -o cc5
+    python3 - m-cry/plugin.json <<'PY'
+import json, sys
+p = json.load(open(sys.argv[1])); p['compat']['steer-crypto'] = '^1.0'; json.dump(p, open(sys.argv[1], 'w'), ensure_ascii=False)
+PY
+    check "build: помощник на libsteer-wolfssl с compat.steer-crypto проходит" "$S" build m-cry --arch x86_64 --key dev.sec -o cc5
 fi
 
 section "index"

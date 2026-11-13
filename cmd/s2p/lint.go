@@ -979,6 +979,12 @@ func (l *linter) elfs(p *pluginDoc, t *tree, o lintOpts) {
 		rp := strings.Join(append(runp, rpath...), ":")
 		for _, nd := range needed {
 			switch {
+			case regexp.MustCompile(`^libsteer-(wolfssl|ngtcp2)\.so\.[0-9][0-9A-Za-z.-]*$`).MatchString(nd):
+				// Общие библиотеки криптографии и QUIC ядра (steer 2.1.4): имя файла меняется только со сборкой
+				// wolfSSL или ngtcp2, и какая сборка нужна, плагин объявляет осью compat.steer-crypto (docs/manifest.md).
+				if _, ok := p.Compat["steer-crypto"]; !ok {
+					l.errf("%s: DT_NEEDED %s — общая библиотека ядра, а оси compat.steer-crypto нет: без неё менеджер не отличит ядро с другой сборкой библиотеки (docs/manifest.md, «compat»)", n, nd)
+				}
 			case strings.HasPrefix(nd, "libsteer"):
 				l.errf("%s: DT_NEEDED %s — плагин не связывается с libsteer (имя файла ядра меняется с каждым выпуском; всё нужное приходит таблицей в init, docs/steer-abi.md)", n, nd)
 			case strings.HasPrefix(nd, "libs2p-"):

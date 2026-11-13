@@ -90,7 +90,7 @@ splify2, у него появятся настройки»). Поэтому `ste
 `tgws` нет — его ставят из репозитория `splify2-extended-plugins` (вкладка «Плагины» splify2 или
 `steer plugin install tgws`); до этого выход `kind: tgws` недоступен с причиной «нужен плагин tgws», а `apply` с ним —
 отказ. Исходник плагина — в дереве steer (`plugins/tgws`, `src/modules/main_tgws.c`, `src/proto/tgws`): программа
-статическая, со своим TLS 1.3/1.2 и wolfSSL (`net1` не отдаёт TLS-соединение), собирает её `steer/build.sh`, архив
+со своим TLS 1.3/1.2 и wolfSSL ядра (`libsteer-wolfssl.so`, с steer 2.1.4; `net1` не отдаёт TLS-соединение), собирает её `steer/build.sh`, архив
 `.s2p` — `plugins/build.sh` репозитория `splify2-extended-plugins`. Прежние файлы моста (`/etc/steer/tgws-dc.conf`,
 `tgws-domains.lst`, `tgws-route.conf`) плагин не читает: адреса ДЦ, пул доменов, пути ДЦ и туннели WARP — его
 настройки (`conf/tgws/settings.json` по `settings.schema.json`). Перенос из микропакета stgws (`/etc/stgws`) делает
@@ -181,10 +181,10 @@ apk при обновлении зовёт `post-upgrade`, а не `post-install
 - Состав: все протоколы `default: true` (`vless`, `hysteria2`, `proxy`, `xsteer`, `obfs`, `tgws`,
   `warpbox`), их библиотека `net1`, `awg`, а также `tgws@lite` — на случай нехватки места под `full`; `index.json` и `index.json.sig` — снимок индекса на момент
   выпуска; всё — под архитектуру пакета.
-- Размер: с переездом стека в `net1` семя больше прежней оценки PLUGINS.md 7.4 (≈0,57 МБ без сжатия):
-  теперь в него входит и стек с TLS/QUIC и копией wolfSSL — порядка 1,1 МБ libsteer и 0,67 МБ wolfSSL на
-  x86-64 сегодня (`steer/build/libs/x86_64/`), в gzip заметно меньше. Точное число — после сборки `net1`;
-  решение «не экономить флеш» (CLAUDE.md хаба) такую цену допускает.
+- Размер: семя steer 2.1.4 на mipsel — 0,55 МБ (2.1.3 — 1,21 МБ: в net1 была своя копия wolfSSL и ngtcp2, с 2.1.4 это
+  общие библиотеки ядра, ось `compat.steer-crypto`). После установки менеджер снимает архивы стоящих плагинов (версия не
+  ниже семени), `index.json` с подписью остаётся: флеш после установки ядра со всеми протоколами — 3,8 МБ на mipsel
+  вместо 7,0 МБ у 2.1.3 (`steer/docs/architecture.md`, «Размер пакета»).
 - Собирает семя конвейер выпуска steer из тех же `.s2p`, что публикуются в индекс (PLUGINS.md 7.5).
 
 ## 6. splify2 и коннектор

@@ -122,7 +122,7 @@ const struct steer_plugin_v1 *steer_plugin_v1_entry(uint16_t host_major, uint16_
 |---|---|---|
 | стек TUN, пул узлов, гео (`src/tunnel/*`), транспорты (`src/proto/transport/*`), разбор ссылок (`sublink.c`) | `LIBSTEER_SRC` (`steer/build/sources.mk:213-219, 315-319`) | **плагин-библиотека `net1`**, `libs2p-net.so.1` |
 | TLS 1.3, проверка сертификатов, ClientHello, REALITY, HTTP/2, QUIC (+ngtcp2), слой примитивов `scrypto.c` | `LIBSTEER_SRC`, `QUIC_SRC` (`sources.mk:177, 280-281, 315-319`) | **и в `net1`** (для протоколов), **и в ядре** (для своих нужд, ниже) |
-| wolfSSL | `libsteer-wolfssl.so.<версия wolfSSL>` в `steer-core` (`build-libs.sh:156-163`) | ядро — своя копия; `net1` — вкомпилирован внутрь `libs2p-net.so.1`, символы скрыты |
+| wolfSSL, ngtcp2 | `libsteer-wolfssl.so.<версия wolfSSL>` в `steer-core`, ngtcp2 — в `libsteer.so` | с steer 2.1.4 — одна копия на роутер: `libsteer-wolfssl.so.<версия wolfSSL>` и `libsteer-ngtcp2.so.<версия>-<серия патчей>` в `steer-core`; `net1` и `tgws` связаны с ними (`DT_NEEDED`) и объявляют ось `compat.steer-crypto` (до 2.1.4 — копия, вкомпилированная в `libs2p-net.so.1` и в `tgws`) |
 | виды `vless`, `hysteria2`, протоколы прокси, `xsteer` (`src/kinds/*.c`) и дайлеры (`src/proto/<протокол>/*`) | libsteer и модули `steer-<m>` (`sources.mk:300-331`) | плагины-программы `vless`, `hysteria2`, `proxy`, `xsteer`, `warpbox`, связанные с `libs2p-net.so.1` |
 
 `net1` — официальный плагин `type: library` (ключ роли `protocols`), `libs2p-net.so.1`, экспорт только с
@@ -149,13 +149,18 @@ const struct steer_plugin_v1 *steer_plugin_v1_entry(uint16_t host_major, uint16_
   Брать их у `net1` ядро не может: менеджер
   должен скачать первый плагин, когда плагинов ещё нет, а обновление `net1` в фоне не должно ронять
   DNS роутера.
-- **Протоколы не берут wolfSSL у ядра.** SONAME `libsteer-wolfssl.so.5.9.4` несёт версию wolfSSL
-  (`build-libs.sh:156-163`): каждое обновление wolfSSL в ядре ломало бы протоколы, а они обновляются
-  отдельно (В10).
+- **wolfSSL и ngtcp2 протоколы берут у ядра (steer 2.1.4, решение владельца 2026-11-13: «размер ужимаем»).** До
+  2.1.4 `net1` несла свою скрытую копию (0,64 МБ wolfSSL и 0,3 МБ ngtcp2 на mipsel), `tgws` — свою: SONAME
+  `libsteer-wolfssl.so.<версия>` несёт версию wolfSSL, и обновление wolfSSL в ядре ломало бы протоколы, которые
+  обновляются отдельно (В10). Теперь эта связь объявлена: ось `compat.steer-crypto` ([manifest.md](manifest.md),
+  «compat») называет сборку библиотек ядра, с которой связан плагин. Ядро с другой сборкой (мажор оси) такой
+  плагин не ставит, а приносит в семени `net1` под себя и ставит её в `steer plugin migrate` до перезапуска службы;
+  ядро до 2.1.4 оси не знает и остаётся на `net1` 1.4.x со своей копией. Сверку раскладки структур (отпечаток
+  `steer_wolfssl_abi`) делают при загрузке и ядро, и `net1`, и `tgws`; отказ узнаёт проба ABI менеджера.
 - **Отдельной `libs2p-wolfssl.so` нет.** Экспорт `wolfSSL_*` из библиотеки-плагина совпал бы по именам с
   `libsteer-wolfssl` ядра, и в процессе `steerd` (`.so`-плагин, которому нужен `net1`) вызовы ушли бы не
-  в ту копию: musl версий символов не различает. Поэтому wolfSSL вкомпилирован в `libs2p-net.so.1` и
-  скрыт, а наружу — только API `s2p_*`.
+  в ту копию: musl версий символов не различает. С 2.1.4 копия одна — библиотека ядра, и в процессе `steerd` её
+  делят `libsteer` и `net1`; наружу `net1` по-прежнему отдаёт только API `s2p_*`.
 
 ### Что ядро даёт протоколу
 
