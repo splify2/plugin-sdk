@@ -4,5 +4,5 @@ package sdk
 
 import "embed"
 
-//go:embed schema/*.json include lib templates
+//go:embed schema/*.json schema/draft/*.json include lib templates
 var FS embed.FS

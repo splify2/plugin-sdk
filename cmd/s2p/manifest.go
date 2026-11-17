@@ -39,6 +39,12 @@ type linkDoc struct {
 	Mode   string `json:"mode"`
 }
 
+// settingsDoc describes metadata, not an RPC endpoint or a storage owner.
+// Existing splify2 hosts continue to use their original manifest field.
+type settingsDoc struct {
+	Schema string `json:"schema"`
+}
+
 type pluginDoc struct {
 	Schema      int               `json:"schema"`
 	ID          string            `json:"id"`
@@ -63,7 +69,8 @@ type pluginDoc struct {
 		Ports    int `json:"ports"`
 		Tables   int `json:"tables"`
 	} `json:"resources"`
-	Steer struct {
+	Settings *settingsDoc `json:"settings"`
+	Steer    struct {
 		Commands []struct {
 			Name string   `json:"name"`
 			Prog string   `json:"prog"`
@@ -113,9 +120,7 @@ type pluginDoc struct {
 				Mode string `json:"mode"`
 			} `json:"override"`
 		} `json:"methods"`
-		Settings *struct {
-			Schema string `json:"schema"`
-		} `json:"settings"`
+		Settings *settingsDoc `json:"settings"`
 		// cgi (splify2-api 1.2): файлы cgi/<имя> плагина, которые хост подключает в каталог CGI веб-сервера.
 		Cgi  []string `json:"cgi"`
 		Hide []string `json:"hide"`
@@ -157,6 +162,18 @@ type pluginDoc struct {
 		Prog string `json:"prog"`
 		Init string `json:"init"`
 	} `json:"standalone"`
+}
+
+// settingsSchema resolves the metadata for SDK checks. Hosts must separately
+// check their own supported contract before presenting or changing settings.
+func (p *pluginDoc) settingsSchema() string {
+	if p.Settings != nil {
+		return p.Settings.Schema
+	}
+	if p.Splify2 != nil && p.Splify2.Settings != nil {
+		return p.Splify2.Settings.Schema
+	}
+	return ""
 }
 
 func parsePlugin(b []byte) (*pluginDoc, error) {

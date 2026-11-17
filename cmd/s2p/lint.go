@@ -111,6 +111,7 @@ func lintTree(t *tree, o lintOpts) *linter {
 	l.files(p, t)
 	l.names(p)
 	l.kindsKeys(p, t)
+	l.settings(p, t)
 	l.substitutions(p, t)
 	l.nft(p, t)
 	l.types(p, t)
@@ -248,8 +249,8 @@ func (l *linter) compat(p *pluginDoc) {
 		if helpers == 0 {
 			l.errf("steer.settings: \"restart\" перезапускает помощников и службы плагина, а их нет")
 		}
-		if p.Splify2 == nil || p.Splify2.Settings == nil || p.Splify2.Settings.Schema == "" {
-			l.warnf("steer.settings: \"restart\" без схемы настроек (splify2.settings.schema) — настройки некому записать")
+		if p.settingsSchema() == "" {
+			l.warnf("steer.settings: \"restart\" без схемы настроек (settings.schema или splify2.settings.schema) — настройки некому записать")
 		}
 	}
 	if (p.Steer.Settings != "" || usesPaths) && has("steer-api") {
@@ -371,6 +372,9 @@ func (p *pluginDoc) refs() []fref {
 		if f != "" {
 			r = append(r, fref{w, f, x})
 		}
+	}
+	if p.Settings != nil {
+		add("settings.schema", p.Settings.Schema, false)
 	}
 	for _, k := range p.Steer.Kinds {
 		w := "steer.kinds[" + k.Name + "]"

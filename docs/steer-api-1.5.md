@@ -52,4 +52,5 @@
 
 `tests/compat/steer-2.1/host.py` (API 1.5) у плагина с `steer.settings: "restart"` проверяет, что значение —
 `"restart"`, что у плагина есть хоть один помощник или служба (иначе перезапускать нечего) и схема настроек
-(`splify2.settings.schema`); `kinds[].paths` — логическое значение.
+(`settings.schema` либо прежнее `splify2.settings.schema`; при наличии обоих
+они ссылаются на один файл); `kinds[].paths` — логическое значение.

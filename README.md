@@ -79,6 +79,7 @@ s2p verify repo/index.json --pub index.pub --base repo
 | [docs/host-api.md](docs/host-api.md) · [packages/plugin-api](packages/plugin-api) | host API панели, типы `@splify2/plugin-api` |
 | [docs/spec-fields.md](docs/spec-fields.md) · [docs/migration-2.1.md](docs/migration-2.1.md) | поля спеки для ядра; переход на steer-core 2.1.0 |
 | [docs/open.md](docs/open.md) | выборы без решения владельца |
+| [docs/steer-ui.md](docs/steer-ui.md) | Steer UI: проверенные возможности SDK, недостающий inbound-контракт и порядок расширения |
 | [cmd/s2p](cmd/s2p) | инструмент `s2p` |
 | [include/s2p/evline.h](include/s2p/evline.h) · [lib/evline](lib/evline) | события программы ядру без зависимостей |
 | [templates/](templates) | заготовки: `helper`, `so`, `ui`, `theme`, `lang` |

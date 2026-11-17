@@ -1,0 +1,4 @@
+# Root bin/ ignores build output; this directory contains Rust source.
+!src/bin/
+!src/bin/layout.rs
+/target/

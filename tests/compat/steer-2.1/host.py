@@ -284,8 +284,11 @@ def main():
         ok("steer.settings — «restart»", sv == "restart", repr(sv))
         n = len(st.get("services", [])) + sum(1 for k in st.get("kinds", []) if k.get("helper"))
         ok("  у плагина есть помощник или служба — перезапуск по настройкам кого-то касается", n > 0)
-        ok("  и схема настроек (splify2.settings.schema)",
-           bool(((m.get("splify2") or {}).get("settings") or {}).get("schema")))
+        settings = m.get("settings") or ((m.get("splify2") or {}).get("settings") or {})
+        ok("  и схема настроек (settings.schema или splify2.settings.schema)", bool(settings.get("schema")))
+        legacy = ((m.get("splify2") or {}).get("settings") or {}).get("schema")
+        if m.get("settings") and legacy:
+            ok("  схемы нового и старого хоста совпадают", settings.get("schema") == legacy)
     for k in st.get("kinds", []):
         if "paths" in k:
             ok("вид %s: paths — логическое" % k.get("name"), isinstance(k["paths"], bool), repr(k["paths"]))

@@ -1,0 +1,10 @@
+[package]
+name = "steer-provider-draft-ffi"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.77"
+publish = false
+description = "Experimental declarations for the draft Steer provider C ABI"
+
+[lib]
+path = "src/lib.rs"

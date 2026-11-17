@@ -105,6 +105,10 @@
     "ui": {
       "$ref": "#/$defs/ui"
     },
+    "settings": {
+      "$ref": "#/$defs/settings",
+      "description": "Независимые от хоста метаданные настроек. Старые хосты splify2 читают splify2.settings; при совместной поставке оба поля должны ссылаться на один файл."
+    },
     "i18n": {
       "$ref": "#/$defs/i18n"
     },
@@ -219,6 +223,17 @@
   },
   "additionalProperties": true,
   "$defs": {
+    "settings": {
+      "type": "object",
+      "required": ["schema"],
+      "properties": {
+        "schema": {
+          "$ref": "#/$defs/relpath",
+          "description": "Схема объекта настроек внутри плагина. Значения остаются в conf/<id>/settings.json; публикация схемы не предоставляет доступ на запись."
+        }
+      },
+      "additionalProperties": true
+    },
     "id": {
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9-]*$",

@@ -48,6 +48,43 @@ section "lint"
 for t in helper so ui theme lang; do check "шаблон $t" "$S" lint "$T/$t"; done
 for e in "$ROOT"/examples/*/plugin.json; do check "образец $(basename "$(dirname "$e")") по схеме" "$S" lint "$e"; done
 
+section "настройки без зависимости от хоста"
+mkdir -p neutral-settings
+python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path("neutral-settings")
+m = {"schema": 1, "id": "neutral-settings", "version": "0.1.0", "name": "Настройки",
+     "arch": "all", "compat": {"steer-api": "^1.0"},
+     "settings": {"schema": "settings.schema.json"}}
+(p / "plugin.json").write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
+(p / "settings.schema.json").write_text(json.dumps({"type": "object", "properties": {
+    "enabled": {"type": "boolean", "default": True}}}), encoding="utf-8")
+PY
+check "нейтральная схема без splify2-api" "$S" lint --official neutral-settings
+check "нейтральные настройки собираются в .s2p" "$S" build neutral-settings --unsigned -o neutral-out
+check "схема проверяется и внутри архива" "$S" lint --official neutral-out/neutral-settings-0.1.0-all.s2p
+python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path("neutral-settings/plugin.json")
+m = json.loads(p.read_text(encoding="utf-8"))
+m["compat"]["splify2-api"] = "^1.0"
+m["splify2"] = {"settings": {"schema": "settings.schema.json"}}
+p.write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
+PY
+check "согласованные схемы старого и нового хоста" "$S" lint --official neutral-settings
+python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path("neutral-settings/plugin.json")
+m = json.loads(p.read_text(encoding="utf-8"))
+m["splify2"]["settings"]["schema"] = "other.schema.json"
+p.write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
+(p.parent / "other.schema.json").write_bytes((p.parent / "settings.schema.json").read_bytes())
+PY
+refuse "конфликт схем выявляется до сборки" 'должны ссылаться на один файл' "$S" build neutral-settings --unsigned -o neutral-conflict
+
 mutate() {  # ИМЯ ШАБЛОН ПРАВКА-python — копия шаблона с правкой plugin.json
     rm -rf "m-$1"; cp -r "$T/$2" "m-$1"; python3 - "m-$1/plugin.json" "$3" <<'PY'
 import json, sys
@@ -417,6 +454,38 @@ else
     check "so: x86_64 и aarch64_cortex-a53 — обязательные цели собраны" sh -c "[ -f cc/example-so-0.1.0-x86_64.s2p ] && [ -f cc/example-so-0.1.0-aarch64_cortex-a53.s2p ]"
     # исполняем: x86_64 — прямо, aarch64 — под qemu-user
     check "helper x86_64: подкоманда и evline hello" sh -c "ex-h-x86_64/bin/example-helper example-hello | grep -q 'example-helper 0.1.0' && echo '{}' > c.json && (timeout 2 ex-h-x86_64/bin/example-helper example o --conf c.json 3>ev.out 2>/dev/null; true) && head -1 ev.out | grep -q '^{\"ev\":\"hello\",\"api\":\"1.0\",\"ver\":\"0.1.0\",\"mod\":\"example-helper\"}\$' && sed -n 2p ev.out | grep -q '\"ev\":\"up\"'"
+    # Проверяем нейтральные метаданные на настоящем C-помощнике из SDK, а не только на JSON.
+    cp -r ex-h-x86_64 neutral-helper
+    cp neutral-settings/settings.schema.json neutral-helper/settings.schema.json
+    python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path("neutral-helper/plugin.json")
+m = json.loads(p.read_text(encoding="utf-8"))
+m["compat"]["steer-api"] = "^1.5"
+m["settings"] = {"schema": "settings.schema.json"}
+m["steer"]["settings"] = "restart"
+p.write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
+PY
+    check "C-помощник: настройки без splify2 подключаются к заглушке ядра" sh "$C" --steer neutral-helper
+    python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path("neutral-helper/plugin.json")
+m = json.loads(p.read_text(encoding="utf-8"))
+m["splify2"] = {"settings": {"schema": "settings.schema.json"}}
+p.write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
+PY
+    check "C-помощник: оба хоста используют одну схему" sh "$C" --steer neutral-helper
+    python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path("neutral-helper/plugin.json")
+m = json.loads(p.read_text(encoding="utf-8"))
+m["splify2"]["settings"]["schema"] = "other.schema.json"
+p.write_text(json.dumps(m, ensure_ascii=False), encoding="utf-8")
+PY
+    refuse "C-помощник: заглушка выявляет конфликт схем" 'FAIL.*схемы нового и старого хоста' sh "$C" --steer neutral-helper
     if command -v qemu-aarch64 >/dev/null 2>&1; then
         check "helper aarch64_cortex-a53 под qemu-user: подкоманда" sh -c "qemu-aarch64 ex-h-aarch64_cortex-a53/bin/example-helper example-hello | grep -q 'example-helper 0.1.0'"
     else skip "helper под qemu-user" "нет qemu-aarch64"; fi

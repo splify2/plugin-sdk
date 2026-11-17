@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DRAFT Steer plugin lock; not an installer or resolver",
+  "type": "object", "additionalProperties": false, "required": ["version", "target", "remotes", "plugins"],
+  "properties": {
+    "version": {"const": 1},
+    "target": {"type": "string", "minLength": 1},
+    "remotes": {"type": "object", "propertyNames": {"$ref": "#/$defs/name"}, "additionalProperties": {"type": "object", "additionalProperties": false, "required": ["url", "trust", "index_sha256", "signer"], "properties": {"url": {"type": "string", "format": "uri", "pattern": "^https://[^/?#@ ]+(/[^ #]*)?$"}, "trust": {"$ref": "#/$defs/name"}, "index_sha256": {"$ref": "#/$defs/digest"}, "signer": {"type": "string", "minLength": 1}}}},
+    "plugins": {"type": "object", "propertyNames": {"$ref": "#/$defs/name"}, "additionalProperties": {
+      "type": "object", "additionalProperties": false,
+      "required": ["remote", "package", "version", "target", "artifact_sha256", "index_sha256", "signer", "providers", "api", "dependencies"],
+      "properties": {
+        "remote": {"$ref": "#/$defs/name"}, "package": {"$ref": "#/$defs/name"},
+        "version": {"type": "string", "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*))?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"},
+        "target": {"type": "string", "minLength": 1},
+        "artifact_sha256": {"$ref": "#/$defs/digest"}, "index_sha256": {"$ref": "#/$defs/digest"},
+        "signer": {"type": "string", "minLength": 1},
+        "providers": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/name"}},
+        "api": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}},
+        "dependencies": {"type": "array", "uniqueItems": true, "items": {"$ref": "#/$defs/name"}}
+      }
+    }}
+  },
+  "$defs": {"name": {"type": "string", "pattern": "^[A-Za-z0-9_][A-Za-z0-9_.-]{0,62}$"}, "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

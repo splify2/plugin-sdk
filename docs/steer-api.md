@@ -59,7 +59,7 @@
 | `STEER_PLUGIN_STATE` | `<state>/plugin/<id>` (tmpfs, создан, пишется) |
 | `STEER_ETC_DIR`, `STEER_STATE_DIR` | каталоги ядра (`/etc/steer`, `/var/lib/steer` на OpenWrt, `steer/src/platform/openwrt.c:19-26`) |
 | `STEER_CTL_SOCK` | путь сокета `steerd` (`/etc/steer/steer.sock`, `openwrt.c:59`) |
-| `STEER_PLATFORM` | `openwrt`, `android`, `linux` |
+| `STEER_PLATFORM` | имя платформы из реестра ядра; сейчас `openwrt` или `android`. Отдельный профиль `linux` пока не реализован: сборка на обычном Linux по умолчанию выбирает `openwrt` (`steer/src/platform/platform.c`) |
 | `STEER_ARCH` | пакетная архитектура |
 | `LANG` | язык человека из настроек splify2 (`ru`, `en`), если известен |
 
