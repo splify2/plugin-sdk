@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DRAFT Steer v3 common DNS settings fragment; not a complete DNS plan or runtime capability",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "strategy": {
+      "$ref": "#/$defs/strategy"
+    },
+    "reverse_mapping": {
+      "type": "boolean"
+    },
+    "cache": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/capacity"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "capacity"
+          ],
+          "properties": {
+            "capacity": {
+              "$ref": "#/$defs/capacity"
+            },
+            "persistent": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "strategy": {
+      "enum": [
+        "ipv4_only",
+        "ipv6_only",
+        "prefer_ipv4",
+        "prefer_ipv6"
+      ]
+    },
+    "capacity": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 131072
+    },
+    "cache_timeout": {
+      "type": "string",
+      "maxLength": 12,
+      "pattern": "^0*(?:(?:0|[1-9][0-9]{0,7}|[1-5][0-9]{8}|60[0-3][0-9]{6}|604[0-7][0-9]{5}|604800000)ms|(?:0|[1-9][0-9]{0,4}|[1-5][0-9]{5}|60[0-3][0-9]{3}|604[0-7][0-9]{2}|604800)s|(?:0|[1-9][0-9]{0,3}|100[0-7][0-9]{1}|10080)m|(?:0|[1-9][0-9]{0,1}|1[0-5][0-9]{1}|16[0-7]|168)h)(?![\\s\\S])",
+      "description": "Integer ms/s/m/h, 0 through 604800000 milliseconds inclusive."
+    },
+    "resolve_rule_options": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {
+          "$ref": "#/$defs/strategy"
+        },
+        "cache_timeout": {
+          "$ref": "#/$defs/cache_timeout"
+        }
+      }
+    }
+  }
+}

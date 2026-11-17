@@ -75,6 +75,33 @@ Apply должен использовать локальный проверен�
 
 ## Проверка и миграция
 
+Экспериментальный C-компилятор `steer/experimental/spec` отдельно проверяет
+общие DNS-настройки. Их типы закреплены фрагментом
+`schema/draft/spec-v3-dns-settings.schema.json`; C-проверки написаны вручную,
+а `schema_agreement_test.py` сравнивает их со схемой на граничных значениях.
+Фрагмент не является полной DNS-спекой. Минимальный Go draft validator по-прежнему
+не принимает полные DNS-планы и не получает поддержку исполнения от этой схемы.
+
+`strategy` принимает `ipv4_only`, `ipv6_only`, `prefer_ipv4`, `prefer_ipv6`;
+`reverse_mapping` — boolean. `cache` сохраняет числовую форму ёмкости
+0–131072 либо объект `{capacity, persistent}` с обязательной ёмкостью в том же
+диапазоне и необязательным boolean `persistent`. Неизвестные вложенные поля
+отвергаются. Ёмкость не означает сохранение кэша на диск: `persistent: true`
+требует отдельной готовой host capability `core.dns.cache.persistent`.
+
+DNS-правило `resolve` может задавать `cache_timeout`: строку длиной до 12 символов,
+целое неотрицательное число с суффиксом `ms`, `s`, `m` или `h`, максимум 168 часов.
+Параметр не допускается в обычных routing-правилах или других действиях.
+Стратегия правила допускается только для `resolve`/`hijack_dns`.
+Настройки требуют соответствующих host capabilities; успешная проверка формы
+при отсутствии executor/inventory оставляет `runtime_ready: false`.
+
+Readonly C views сохраняют `enabled` для узлов и правил, исходные parsed intent,
+listen/endpoint/transport/security/variant и DNS-параметры правил. Эти borrowed
+значения живут до уничтожения plan, могут содержать приватные provider options
+и не включаются в диагностический JSON. Исполнение требует `runtime_ready`;
+доступность views на ошибочном плане этого требования не отменяет.
+
 `go test ./cmd/s2p -run 'Test(SpecV3Draft|PluginLockDraft)' -count=1` проверяет
 валидный вертикальный пример и отказы формы, ссылок, XOR, ограничений версий,
 групп, lock identity/target/digest/provider/dependencies, remote snapshots,
