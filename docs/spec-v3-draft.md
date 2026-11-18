@@ -26,11 +26,20 @@ Remote содержит HTTPS URL подписанного индекса и `tr
 версий существующего SDK). Ссылка `plugin` имеет ровно вид `provider:alias`.
 Alias обязан существовать; его remote обязан существовать.
 
-Inbound содержит `plugin`, `listen: {address, port}`, `options: {}`. Port —
-1–65535. Адрес пока непустая строка: разрешение/классификация bind address,
-IPv4/v6 dual-stack и коллизии TCP/UDP принадлежат будущему host validate.
+Inbound содержит `plugin`, `options` и один из двух вариантов:
+
+- Сокетный: `listen: {address, port}` и необязательный `flow` с уникальными
+  классами `stream`/`datagram` (по умолчанию `stream`). Port — 1–65535.
+  Проверка bind address, IPv4/v6 dual-stack и коллизий TCP/UDP остаётся за host.
+- Устройство: ровно `flow: [device]`, `device: {name: …}` и необязательный
+  `variant`. `listen`, `transport` и `security` здесь запрещены. `name` —
+  логическое имя по общим правилам draft, а не имя интерфейса ядра.
+
 Outbound — либо `plugin` + `options`, либо `type: direct|block`, либо
-`type: group` + `strategy` + непустой уникальный `members`. Стратегии:
+`type: group` + `strategy` + непустой уникальный `members`. `direct` и `block`
+могут объявить `flow` с уникальными классами `stream`, `datagram`, `device`;
+для маршрутизации device-входа укажите `device` также в целевом outbound.
+Совместимость классов маршрута проверяет C-компилятор. Стратегии:
 `order`, `latency`, `manual`, `balance`, `failover`. Ссылки членов проверяются,
 циклы групп запрещены. `plugin` и `type` взаимоисключающие.
 
@@ -40,6 +49,23 @@ Routing содержит `rules` и `default`. Правило — уникаль
 прочие classifiers и параметры стратегий не поддерживаются этим подмножеством.
 `options` намеренно открытый object: их проверит подписанная схема provider;
 этот этап не подтверждает корректность параметров или доступность протокола.
+
+### Параметры входа WireGuard
+
+Отдельный черновой фрагмент `schema/draft/wireguard-inbound-options.schema.json`
+задаёт форму `options` для `wireguard:alias` с `flow: [device]` (вариант
+`default`). Обязательны `listen_port`, `addresses`, `private_key: {secret: …}`
+и `peers`; необязательный `mtu` по умолчанию 1420. Для каждого пира требуются
+`principal_id`, `public_key` и `allowed_ips`; `preshared_key: {secret: …}`
+необязателен. Допускается до восьми адресов, восьми пиров и восьми AllowedIPs
+на пира. Endpoint, настройки AWG и `fwmark` не входят в этот контракт.
+
+C-провайдер проверяет CIDR, отсутствие пересечений AllowedIPs и дубликатов
+публичных ключей. Ссылки на секреты должны указывать на объявления с
+`kind: wireguard_private_key` или `kind: wireguard_preshared_key` соответственно.
+Значения ключей поставляет хост отдельно; в intent допускаются только ссылки.
+Фрагмент не расширяет минимальную схему общим разделом `secrets` и сам по себе
+не включает WireGuard в managed Apply.
 
 ## Lock
 
@@ -81,6 +107,8 @@ Apply должен использовать локальный проверен�
 а `schema_agreement_test.py` сравнивает их со схемой на граничных значениях.
 Фрагмент не является полной DNS-спекой. Минимальный Go draft validator по-прежнему
 не принимает полные DNS-планы и не получает поддержку исполнения от этой схемы.
+Тот же тест сравнивает форму socket/device-входов со схемой спеки и проверяет,
+что синтаксически корректный план не получает `runtime_ready` без inventory.
 
 `strategy` принимает `ipv4_only`, `ipv6_only`, `prefer_ipv4`, `prefer_ipv6`;
 `reverse_mapping` — boolean. `cache` сохраняет числовую форму ёмкости

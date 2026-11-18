@@ -89,6 +89,39 @@ func TestSpecV3Draft(t *testing.T) {
 	}
 }
 
+func TestSpecV3DraftDeviceInbound(t *testing.T) {
+	cases := []struct {
+		name, ingress string
+		valid         bool
+	}{
+		{"socket default", `"listen":{"address":"127.0.0.1","port":1080}`, true},
+		{"socket explicit", `"flow":["stream","datagram"],"listen":{"address":"127.0.0.1","port":1080}`, true},
+		{"device", `"flow":["device"],"device":{"name":"gateway"}`, true},
+		{"device variant", `"flow":["device"],"device":{"name":"gateway"},"variant":"kernel"`, true},
+		{"missing device", `"flow":["device"]`, false},
+		{"missing flow", `"device":{"name":"gateway"}`, false},
+		{"socket fields", `"flow":["device"],"device":{"name":"gateway"},"listen":{"address":"127.0.0.1","port":51820}`, false},
+		{"mixed flow", `"flow":["device","stream"],"device":{"name":"gateway"}`, false},
+		{"duplicate flow", `"flow":["device","device"],"device":{"name":"gateway"}`, false},
+		{"wrong flow type", `"flow":"device","device":{"name":"gateway"}`, false},
+		{"socket flow", `"flow":["stream"],"device":{"name":"gateway"}`, false},
+		{"unknown device field", `"flow":["device"],"device":{"name":"gateway","index":7}`, false},
+		{"invalid device name", `"flow":["device"],"device":{"name":"bad/name"}`, false},
+		{"invalid variant", `"flow":["device"],"device":{"name":"gateway"},"variant":7`, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			spec := draftFixture(t)
+			draftMap(spec, "inbounds")["local"] = json.RawMessage(`{"plugin":"wireguard:main","options":{},` + tc.ingress + `}`)
+			spec["outbounds"] = map[string]any{"deny": map[string]any{"type": "block", "flow": []string{"stream", "datagram", "device"}}}
+			spec["routing"] = map[string]any{"default": "deny", "rules": []any{}}
+			if errs := validateSpecV3Draft(draftBytes(t, spec)); (len(errs) == 0) != tc.valid {
+				t.Fatalf("valid=%t, errors: %v", tc.valid, errs)
+			}
+		})
+	}
+}
+
 func TestPluginLockDraft(t *testing.T) {
 	if errs := validatePluginLockDraft([]byte(draftSpecFixture), draftBytes(t, draftLockFixture())); len(errs) > 0 {
 		t.Fatal(errs)
